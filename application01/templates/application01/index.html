@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地铁车站查询</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        /* 线路图标 */
+        .color-circle {
+            display: inline-block;
+            width: 25px;  /* 圆环直径 */
+            height: 25px; /* 圆环直径 */
+            border-radius: 50%; /* 使div成为圆形 */
+            margin-right: 8px;  /* 与线路名称之间的间距 */
+            margin-top: -4px;/* 对齐文字 */
+            vertical-align: middle; /* 垂直居中对齐 */
+            border: 2px solid; /* 添加边框以形成圆环效果 */
+            box-sizing: border-box; /* 确保边框包含在宽度和高度内 */
+            position: relative; /* 使内部的数字可以绝对定位 */
+            background-color: white; /* 背景颜色 */
+            z-index: 2;
+        }
+
+        .color-circle span {
+            position: absolute;
+            top: 52%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 14px; /* 调整字体大小 */
+            color: black; /* 文字颜色 */
+            line-height: 2; /* 确保文字垂直居中 */
+            z-index: 2;
+        }
+
+        .line-list li {
+            list-style: none; /* 移除默认的列表样式 */
+        }
+
+        /* 线路列表项-终点站字段 */
+        .end-stations {
+            font-size: 0.8em; /* 使字体变小 */
+            margin-left: 10px; /* 与线路名称之间的间距 */
+        }
+
+        /* 车站列表项 */
+        .station-list {
+            display: flex;
+            flex-direction: column; /* 列方向排列 */
+            list-style: none; /* 移除默认的列表样式 */
+            padding: 0; /* 移除默认的内边距 */
+            margin: 0; /* 移除默认的外边距 */
+            height: 100%; /* 确保 ul 有明确的高度 */
+        }
+
+        /* 车站列表项-站名字段 */
+        .station-name {
+            flex: 1;
+            padding-right: 12px;
+            text-align: right; /* 文本右对齐 */
+        }
+
+        /* 车站列表项-线路与设施图标 */
+        .station-icons {
+            display: flex;
+            align-items: center;
+            width: 70%
+        }
+
+        /* 竖条样式 */
+        .line-bar-up {
+            position: absolute;
+            top: -80%;
+            left: 28%;
+            width: 8px;
+            z-index: 1;
+        }
+        .line-bar-down {
+            position: absolute;
+            top: 50%;
+            left: 28%;
+            width: 8px;
+            z-index: 1;
+        }
+
+    </style>
+</head>
+<body>
+    <header>
+        <h1>地铁车站查询</h1>
+    </header>
+    <main>
+        <div class="container">
+            <div class="left-panel">
+                <button id="show-map-btn" disabled>显示线路图</button>
+                <ul id="line-list">
+                    {% for line in lines %}
+                        <li>
+                            <a href="#" data-line-id="{{ line.id }}">
+                                <span class="color-circle" style="border-color: {{ line.colour }};">
+                                    <span>{{ line.line_no }}</span>
+                                </span>
+                                {{ line.line_name }}
+                                <span class="end-stations">{{ line.min_station_name }} - {{ line.max_station_name }}</span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="middle-panel">
+                <input type="text" id="search-station" placeholder="搜索车站">
+                <ul id="station-list">
+                    <!-- 默认情况下为空 -->
+                </ul>
+            </div>
+            <div class="right-panel">
+                <form id="path-form">
+                    <label for="start-station">起点站:</label>
+                    <input type="text" id="start-station" placeholder="选择或输入起点站">
+                    <br>
+                    <label for="end-station">终点站:</label>
+                    <input type="text" id="end-station" placeholder="选择或输入终点站">
+                    <br>
+                    <button type="button" id="calculate-path" disabled>计算</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const lineList = document.getElementById('line-list');
+            const stationList = document.getElementById('station-list');
+
+            // 获取线路列表中的第一条线路
+            const firstLineLink = lineList.querySelector('a[data-line-id]');
+            const firstLineId = firstLineLink ? firstLineLink.getAttribute('data-line-id') : null;
+
+            // 定义一个函数来获取并显示车站列表
+            function fetchAndDisplayStations(lineId) {
+                if (lineId) {
+                    fetch(`/get_stations_for_line/${lineId}/`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.stations) {
+                        // 清空现有的车站列表
+                        stationList.innerHTML = '';
+
+                        // 获取第一个车站的第一个线路的颜色
+                        const firstStation = data.stations[0];
+                        const firstLineColor = firstStation.lines[0].line__colour;
+
+                        // 添加新的车站列表
+                        data.stations.forEach((station, stationIndex) => {
+                            const li = document.createElement('li');
+                            const a = document.createElement('a');
+
+
+                            // 包含车站所有信息的 div
+                            const stationItemDiv = document.createElement('div');
+                            stationItemDiv.style.display = 'flex'; // 使用 Flexbox 布局
+                            stationItemDiv.style.alignItems = 'center'; // 垂直居中对齐
+                            stationItemDiv.style.width = '100%'; // 占据整个父元素的宽度
+                            stationItemDiv.margin = 0; /* 去除默认的外边距 */
+                            stationItemDiv.padding = 0; /* 去除默认的内边距 */
+
+                            // 创建车站名称的 div
+                            const stationNameDiv = document.createElement('div');
+                            stationNameDiv.className = 'station-name';
+                            stationNameDiv.textContent = station.name;
+
+                            // 创建竖条
+                            const lineBarUp = document.createElement('div');
+                            lineBarUp.className = 'line-bar-up';
+                            lineBarUp.style.backgroundColor = firstLineColor
+                            const lineBarDown = document.createElement('div');
+                            lineBarDown.className = 'line-bar-down';
+                            lineBarDown.style.backgroundColor = firstLineColor
+
+                            // 创建线路编号和设施图标的 div
+                            const iconsDiv = document.createElement('div');
+                            iconsDiv.className = 'station-icons';
+                            iconsDiv.style.display = 'flex'; // 使用 Flexbox 布局
+                            iconsDiv.style.width = '80%';
+                            iconsDiv.style.alignItems = 'center'; // 垂直居中对齐
+                            iconsDiv.style.gap = '1px'; // 图标之间的间距
+
+                            station.lines.forEach((line, lineIndex) => {
+                                const lineIcon = document.createElement('span');
+                                lineIcon.style.position = 'relative';
+
+                                // 线路标识
+                                const lineCircle = document.createElement('span');
+                                lineCircle.className = 'color-circle';
+                                lineCircle.style.borderColor = line.line__colour;
+                                const lineNoSpan = document.createElement('span');
+                                lineNoSpan.textContent = line.line__line_no;
+                                lineCircle.appendChild(lineNoSpan);
+                                lineIcon.appendChild(lineCircle);
+
+                                // 线路竖条
+                                if (lineIndex === 0) {
+                                    if (stationIndex === 0) {
+                                        // 第一站只有 down 竖条
+                                        lineIcon.appendChild(lineBarDown);
+                                    } else if (stationIndex === data.stations.length - 1) {
+                                        // 最后一站只有 up 端竖条
+                                        lineIcon.appendChild(lineBarUp);
+                                    } else {
+                                        lineIcon.appendChild(lineBarUp);
+                                        lineIcon.appendChild(lineBarDown);
+                                    }
+                                }
+                                iconsDiv.appendChild(lineIcon);
+                            });
+
+                            station.facilities.forEach(facility => {
+                                if (facility.icon_image_data) {
+                                    const facilityIcon = document.createElement('img');
+                                    facilityIcon.src = `data:image/png;base64,${facility.icon_image_data}`; // 设置Base64编码的图片数据
+                                    facilityIcon.alt = `${facility.facility_type} icon`;
+                                    facilityIcon.style.marginTop = '5px'; // 对齐水平线
+                                    facilityIcon.style.marginRight = '-4px'; // 缩短设施图标的间距
+                                    facilityIcon.style.transform = 'scale(0.7)';
+                                    facilityIcon.style.transformOrigin = 'top left'; // 缩放的起始点设为左上角
+                                    iconsDiv.appendChild(facilityIcon);
+                                }
+                            });
+
+                            // 将各项添加到 stationItemDiv 中
+                            stationItemDiv.appendChild(stationNameDiv);
+                            stationItemDiv.appendChild(iconsDiv);
+
+                            // 将 stationItemDiv 添加到 a 标签中
+                            a.appendChild(stationItemDiv);
+
+                            // 将 a 标签添加到 li 中
+                            li.appendChild(a);
+                            stationList.appendChild(li);
+
+                            // 计算行高并在 DOM 加载完成后更新竖条高度
+                            requestAnimationFrame(() => {
+                                const lineHeight = stationItemDiv.offsetHeight;
+                                lineBarUp.style.height = `${lineHeight}px`;
+                                lineBarDown.style.height = `${lineHeight}px`;
+                            });
+                        });
+                    } else {
+                                console.error('No stations found for the line.');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching stations:', error);
+                        });
+                }
+            }
+
+            // 页面加载时显示第一条线路的车站列表
+            if (firstLineId) {
+                fetchAndDisplayStations(firstLineId);
+            }
+
+            // 点击线路列表项时更新车站列表
+            lineList.addEventListener('click', function(event) {
+                event.preventDefault();
+                const link = event.target.closest('a');
+                if (link) {
+                    const lineId = link.getAttribute('data-line-id');
+                    fetchAndDisplayStations(lineId);
+                }
+            });
+
+        });
+    </script>
+</body>
+</html>

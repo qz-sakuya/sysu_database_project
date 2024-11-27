@@ -1,0 +1,96 @@
+:root {
+    --theme-color: rgb(204, 88, 81); /* 主题色 */
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: var(--theme-color);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* 确保body至少占据整个视口高度 */
+}
+
+/* 页眉 */
+header {
+    background-color: rgb(50, 50, 50);
+    color: white;
+    text-align: center;
+    padding: 0.25rem 0; /* 页眉高度 */
+    font-size: 0.5rem; /* 调整字体大小 */
+}
+
+.container {
+    display: flex;
+    justify-content: space-between;
+    padding: 3rem 10rem;
+    background-color: var(--theme-color);
+    flex-grow: 1; /* 使容器占据剩余空间 */
+    gap: 1rem; /* 增加面板之间的间距 */
+}
+
+.left-panel, .middle-panel, .right-panel {
+    padding: 1rem;
+    box-shadow: 0 0 20px rgba(50, 50, 50, 0.3);
+    background-color: rgb(255, 255, 255); /* 背景色 */
+    border-radius: 3px;
+}
+
+.left-panel {
+    width: 20%;
+}
+
+.middle-panel {
+    width: 50%;
+}
+
+.right-panel {
+    width: 20%;
+}
+
+
+button {
+    padding: 0.5rem 1rem;
+    background-color: rgb(100, 100, 100);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* 按钮悬停 */
+button:hover {
+    background-color: #0056b3;
+}
+
+/* 输入框 */
+input[type="text"] {
+    padding: 0.5rem;
+    width: calc(100% - 1rem); /* 减去左右内边距 */
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-bottom: 1rem;
+}
+
+/* 列表 */
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+/* 列表项 */
+ul li a {
+    display: block;
+    padding: 0.5rem;
+    text-decoration: none;
+    color: #333;            /* 设置文本颜色 */
+    border-bottom: 1px solid #ddd;  /* 在每个链接下方添加下划线 */
+}
+
+/* 列表项悬停 */
+ul li a:hover {
+    background-color: #f1f1f1;
+}
+
+
