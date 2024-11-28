@@ -21,10 +21,11 @@ header {
     font-size: 0.5rem; /* 调整字体大小 */
 }
 
+/* 主容器 */
 .container {
     display: flex;
     justify-content: space-between;
-    padding: 3rem 10rem;
+    padding: 3rem 1rem;
     background-color: var(--theme-color);
     flex-grow: 1; /* 使容器占据剩余空间 */
     gap: 1rem; /* 增加面板之间的间距 */
@@ -38,11 +39,12 @@ header {
 }
 
 .left-panel {
-    width: 20%;
+    width: 2%;
 }
 
 .middle-panel {
-    width: 50%;
+    width: 5%;
+
 }
 
 .right-panel {

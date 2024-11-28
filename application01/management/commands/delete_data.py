@@ -31,12 +31,12 @@ python manage.py delete_data delete_transfer "1号线" "公园前" "2号线" "�
 注：根据车站名寻找站台
 
 删除首班车数据
-python manage.py delete_data delete_first_train "1号线" "公园前" up
+python manage.py delete_data delete_first_train "1号线" "西塱" down
 （线路名，车站名，上下行）
 注：根据车站名寻找站台
 
 删除末班车数据
-python manage.py delete_data delete_last_train "1号线" "公园前" down
+python manage.py delete_data delete_last_train "1号线" "西塱" down
 （线路名，站台名，上下行）
 注：根据车站名寻找站台
 

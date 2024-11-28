@@ -56,7 +56,7 @@
 
         /* 车站列表项-站名字段 */
         .station-name {
-            flex: 1;
+            width: 15%;
             padding-right: 12px;
             text-align: right; /* 文本右对齐 */
         }
@@ -65,23 +65,82 @@
         .station-icons {
             display: flex;
             align-items: center;
-            width: 70%
+            width: 25%
         }
 
-        /* 竖条样式 */
+        /* 车站列表项-竖条样式 */
         .line-bar-up {
             position: absolute;
-            top: -80%;
+            top: -100%;
             left: 28%;
             width: 8px;
             z-index: 1;
         }
         .line-bar-down {
             position: absolute;
-            top: 50%;
+            top: 70%;
             left: 28%;
             width: 8px;
             z-index: 1;
+        }
+
+        /* 车站列表项-首班车信息 */
+        .first-train {
+            display: flex;
+            align-items: center;
+            width: 25%;
+        }
+
+        /* 车站列表项-末班车信息 */
+        .last-train {
+            display: flex;
+            align-items: center;
+            width: 25%;
+        }
+
+        /* 车站列表项-首末班车文本*/
+        .train-label {
+            padding-right: -5px;
+            font-size: 0.88em;
+        }
+
+        .train-direction {
+            width: 35%;
+        }
+
+        .train-time {
+            width: 35%;
+        }
+
+        /* 车站列表项-首末班车列表项 */
+        .train-direction-data {
+            padding-right: 5px;
+            text-align: right;
+            flex: 1;
+            font-size: 0.5em;
+        }
+
+        .train-time-data {
+            margin-top: 2px;/* 对齐文字 */
+            font-size: 0.8em;
+            width: 40%;
+        }
+
+        /* 车站列表项-更多功能按钮 */
+        .station-options-button {
+            background-color: #fff;
+            border: 2px solid #999;
+            color: #777; /* 文字颜色 */
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: bold; /* 文字加粗 */
+            margin-left: auto; /* 将按钮推到右侧 */
+        }
+
+        /* 按钮悬停 */
+        .station-options-button:hover {
+            background-color: #bbb;
         }
 
     </style>
@@ -149,7 +208,7 @@
 
                         // 获取第一个车站的第一个线路的颜色
                         const firstStation = data.stations[0];
-                        const firstLineColor = firstStation.lines[0].line__colour;
+                        const firstLineColor = firstStation.lines[0].colour;
 
                         // 添加新的车站列表
                         data.stations.forEach((station, stationIndex) => {
@@ -182,7 +241,6 @@
                             const iconsDiv = document.createElement('div');
                             iconsDiv.className = 'station-icons';
                             iconsDiv.style.display = 'flex'; // 使用 Flexbox 布局
-                            iconsDiv.style.width = '80%';
                             iconsDiv.style.alignItems = 'center'; // 垂直居中对齐
                             iconsDiv.style.gap = '1px'; // 图标之间的间距
 
@@ -193,9 +251,9 @@
                                 // 线路标识
                                 const lineCircle = document.createElement('span');
                                 lineCircle.className = 'color-circle';
-                                lineCircle.style.borderColor = line.line__colour;
+                                lineCircle.style.borderColor = line.colour;
                                 const lineNoSpan = document.createElement('span');
-                                lineNoSpan.textContent = line.line__line_no;
+                                lineNoSpan.textContent = line.line_no;
                                 lineCircle.appendChild(lineNoSpan);
                                 lineIcon.appendChild(lineCircle);
 
@@ -228,9 +286,77 @@
                                 }
                             });
 
+                            // 创建首班车数据的div
+                            const firstTrainDiv = document.createElement('div');
+                            firstTrainDiv.className = 'first-train';
+
+                            const firstTrainLabelDiv = document.createElement('div');
+                            firstTrainLabelDiv.className = 'train-label';
+                            firstTrainLabelDiv.textContent = '首班车';
+
+                            const firstTrainDirectionDiv = document.createElement('div');
+                            firstTrainDirectionDiv.className = 'train-direction';
+                            const firstTrainTimeDiv = document.createElement('div');
+                            firstTrainTimeDiv.className = 'train-time';
+
+                            station.first_trains.forEach(train => {
+                                const directionElement = document.createElement('div');
+                                directionElement.className = 'train-direction-data';
+                                directionElement.textContent = train.direction;
+
+                                const timeElement = document.createElement('div');
+                                timeElement.className = 'train-time-data';
+                                timeElement.textContent = train.departure_time;
+
+                                firstTrainDirectionDiv.appendChild(directionElement);
+                                firstTrainTimeDiv.appendChild(timeElement);
+                            });
+
+                            firstTrainDiv.appendChild(firstTrainLabelDiv)
+                            firstTrainDiv.appendChild(firstTrainDirectionDiv);
+                            firstTrainDiv.appendChild(firstTrainTimeDiv);
+
+                            // 创建末班车数据的div
+                            const lastTrainDiv = document.createElement('div');
+                            lastTrainDiv.className = 'last-train';
+
+                            const lastTrainLabelDiv = document.createElement('div');
+                            lastTrainLabelDiv.className = 'train-label';
+                            lastTrainLabelDiv.textContent = '末班车';
+
+                            const lastTrainDirectionDiv = document.createElement('div');
+                            lastTrainDirectionDiv.className = 'train-direction';
+                            const lastTrainTimeDiv = document.createElement('div');
+                            lastTrainTimeDiv.className = 'train-time';
+
+                            station.last_trains.forEach(train => {
+                                const directionElement = document.createElement('div');
+                                directionElement.className = 'train-direction-data';
+                                directionElement.textContent = train.direction;
+
+                                const timeElement = document.createElement('div');
+                                timeElement.className = 'train-time-data';
+                                timeElement.textContent = train.departure_time;
+
+                                lastTrainDirectionDiv.appendChild(directionElement);
+                                lastTrainTimeDiv.appendChild(timeElement);
+                            });
+
+                            lastTrainDiv.appendChild(lastTrainLabelDiv)
+                            lastTrainDiv.appendChild(lastTrainDirectionDiv);
+                            lastTrainDiv.appendChild(lastTrainTimeDiv);
+
+                            // 创建跳转按钮
+                            const station_options_button = document.createElement('button');
+                            station_options_button.className = 'station-options-button';
+                            station_options_button.textContent = '>';
+
                             // 将各项添加到 stationItemDiv 中
                             stationItemDiv.appendChild(stationNameDiv);
                             stationItemDiv.appendChild(iconsDiv);
+                            stationItemDiv.appendChild(firstTrainDiv);
+                            stationItemDiv.appendChild(lastTrainDiv);
+                            stationItemDiv.appendChild(station_options_button);
 
                             // 将 stationItemDiv 添加到 a 标签中
                             a.appendChild(stationItemDiv);
