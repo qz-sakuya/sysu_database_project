@@ -48,11 +48,6 @@ python manage.py add_data add_last_train "1号线" "西塱" up 06:00
 python manage.py add_data add_last_train "1号线" "西塱" down 23:00
 （线路名，车站名，上下行，时间）
 注意，线路名统一为2号线，车站名为该行车站名，上下行按如上顺序。如果时间为“--”，则跳过该项。
-
-
-
-
-
 注：不要忘记删除终点站的上下行数据
 
 

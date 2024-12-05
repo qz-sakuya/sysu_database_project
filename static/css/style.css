@@ -25,46 +25,60 @@ header {
 .container {
     display: flex;
     justify-content: space-between;
-    padding: 3rem 1rem;
+    padding: 3rem 5rem;
     background-color: var(--theme-color);
-    flex-grow: 1; /* 使容器占据剩余空间 */
-    gap: 1rem; /* 增加面板之间的间距 */
+    flex-grow: 1;
+    gap: 1rem; /* 调整为需要的值 */
 }
 
 .left-panel, .middle-panel, .right-panel {
     padding: 1rem;
-    box-shadow: 0 0 20px rgba(50, 50, 50, 0.3);
-    background-color: rgb(255, 255, 255); /* 背景色 */
+    box-shadow: 0 0 20px rgba(60, 60, 60, 0.3);
+    background-color: rgb(255, 255, 255);
     border-radius: 3px;
 }
 
 .left-panel {
-    width: 2%;
+    flex-basis: 17.5%;
 }
 
 .middle-panel {
-    width: 5%;
-
+    flex-basis: 55%;
 }
 
 .right-panel {
-    width: 20%;
+    flex-basis: 17.5%;
 }
 
+/* 线路图按钮 */
+.line-map-button {
+    height: 30px;
+    width: 100%;
+}
 
+/* 计算路线按钮 */
+.path-calculate-button {
+    height: 30px;
+    width: 100%;
+}
+
+/* 按钮 */
 button {
-    padding: 0.5rem 1rem;
-    background-color: rgb(100, 100, 100);
-    color: white;
-    border: none;
+    background-color: #fff;
+    border: 1px solid #999;
+    color: #666; /* 文字颜色 */
     border-radius: 5px;
     cursor: pointer;
+    box-sizing: border-box;
 }
 
-/* 按钮悬停 */
 button:hover {
-    background-color: #0056b3;
+    background-color: #bbb;
 }
+
+
+
+
 
 /* 输入框 */
 input[type="text"] {
@@ -73,6 +87,7 @@ input[type="text"] {
     border: 1px solid #ccc;
     border-radius: 5px;
     margin-bottom: 1rem;
+    height: 20px;
 }
 
 /* 列表 */
