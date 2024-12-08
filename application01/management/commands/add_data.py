@@ -6,7 +6,7 @@ from application01.models import Line, Platform, Station, Exit, Section, Transfe
 命令行添加数据，示例： 
 
 添加线路数据
-python manage.py add_data add_line "3.5" "3号线北延段" "#00629B'
+python manage.py add_data add_line "3.5" "3号线北延段" "#00629B"
 python manage.py add_data add_line "5" "5号线" "#C5003E"
 （线路编号，线路名，标识色）
 

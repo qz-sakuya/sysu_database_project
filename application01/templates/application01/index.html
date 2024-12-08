@@ -36,17 +36,19 @@
             z-index: 2;
         }
 
-        .line-list li {
-            list-style: none; /* 移除默认的列表样式 */
+        /* 线路列表项 */
+        .line-item {
+            display: flex;
+            align-items: center; /* 垂直居中对齐 */
         }
 
-        /* 线路列表项-终点站字段 */
+        /* 线路列表项-终点站列表项 */
         .end-stations {
-            font-size: 0.8em; /* 使字体变小 */
+            font-size: 0.75rem; /* 使字体变小 */
             margin-left: 10px; /* 与线路名称之间的间距 */
         }
 
-        /* 车站列表项 */
+        /* 车站列表 */
         .station-list {
             display: flex;
             flex-direction: column; /* 列方向排列 */
@@ -58,9 +60,10 @@
 
         /* 车站列表项-站名字段 */
         .station-name {
-            width: 15%;
+            font-size: 16px;
             padding-right: 12px;
             text-align: right; /* 文本右对齐 */
+            width: 16%;
         }
 
         /* 车站列表项-线路与设施图标 */
@@ -73,15 +76,15 @@
         /* 车站列表项-竖条样式 */
         .line-bar-up {
             position: absolute;
-            top: -100%;
-            left: 28%;
+            bottom: 100%;
+            left: 27%;
             width: 8px;
             z-index: 1;
         }
         .line-bar-down {
             position: absolute;
             top: 70%;
-            left: 28%;
+            left: 27%;
             width: 8px;
             z-index: 1;
         }
@@ -90,14 +93,14 @@
         .first-train {
             display: flex;
             align-items: center;
-            width: 25%;
+            width: 30%;
         }
 
         /* 车站列表项-末班车信息 */
         .last-train {
             display: flex;
             align-items: center;
-            width: 25%;
+            width: 30%;
         }
 
         /* 车站列表项-首末班车文本*/
@@ -107,7 +110,7 @@
         }
 
         .train-direction {
-            width: 35%;
+            width: 40%;
         }
 
         .train-time {
@@ -124,7 +127,7 @@
 
         .train-time-data {
             margin-top: 2px;/* 对齐文字 */
-            font-size: 0.8em;
+            font-size: 0.77em;
             width: 40%;
         }
 
@@ -158,12 +161,16 @@
                 <ul id="line-list">
                     {% for line in lines %}
                         <li>
-                            <a href="#" data-line-id="{{ line.id }}">
+                            <a href="#" data-line-no="{{ line.line_no }}" class="line-item">
                                 <span class="color-circle" style="border-color: {{ line.colour }};">
                                     <span>{{ line.line_no }}</span>
                                 </span>
                                 {{ line.line_name }}
-                                <span class="end-stations">{{ line.min_station_name }} - {{ line.max_station_name }}</span>
+                                <ul class="end-stations-list">
+                                    {% for station in line.end_stations %}
+                                        <li class="end-stations">{{ station.min_station_name }} - {{ station.max_station_name }}</li>
+                                    {% endfor %}
+                                </ul>
                             </a>
                         </li>
                     {% endfor %}
@@ -195,11 +202,72 @@
             window.open('/show_line_map/', '_blank');
         });
 
-        // 显示车站列表
+        // 文本过长时自动减少字体大小
+        function adjustFontSize(element, maxCharCount, options = {}) {
+            const defaultOptions = {
+                minFontSize: 9, // 最小字体大小 (px)
+            };
+
+            const settings = { ...defaultOptions, ...options };
+            let currentFontSize = parseFloat(window.getComputedStyle(element).fontSize);
+            let textContent = element.textContent || element.innerText;
+            let charCount = textContent.length;
+
+            if (charCount > maxCharCount) {
+                // 计算缩放比例
+                let scale = maxCharCount / charCount;
+                let newFontSize = currentFontSize * scale; // 固定缩小比例
+
+                // 确保新字体大小不低于最小值
+                if (newFontSize < settings.minFontSize) {
+                    newFontSize = settings.minFontSize;
+                }
+
+                element.style.fontSize = `${newFontSize}px`;
+            }
+        }
+
+        function adjustFontSizesInList(listElement, maxCharCount, options = {}) {
+            const defaultOptions = {
+                minFontSize: 9, // 最小字体大小 (px)
+            };
+
+            const settings = { ...defaultOptions, ...options };
+            let minScale = 1; // 默认缩放比例为1，表示不缩放
+            let elements = listElement.querySelectorAll('li');
+
+            // 计算最小缩放比例
+            elements.forEach(function(el) {
+                let textContent = el.textContent || el.innerText;
+                let charCount = textContent.length;
+
+                if (charCount > maxCharCount) {
+                    // 计算缩放比例
+                    let scale = maxCharCount / charCount;
+                    if (scale < minScale) {
+                        minScale = scale;
+                    }
+                }
+            });
+
+            // 应用最小缩放比例到所有元素
+            if (minScale <= 1) {
+                let currentFontSize = parseFloat(window.getComputedStyle(elements[0]).fontSize);
+                let newFontSize = currentFontSize * minScale;
+                // 确保新字体大小不低于最小值
+                if (newFontSize < settings.minFontSize) {
+                    newFontSize = settings.minFontSize;
+                }
+                elements.forEach(function(el) {
+                    el.style.fontSize = `${newFontSize}px`;
+                });
+            }
+
+        }
+
+        // 绘制车站列表
         function showStations(data, show_line_bar = false){
             const stationList = document.getElementById('station-list');
-            // 清空现有的车站列表
-            stationList.innerHTML = '';
 
             // 获取第一个车站的第一个线路的颜色
             const firstStation = data.stations[0];
@@ -209,7 +277,6 @@
             data.stations.forEach((station, stationIndex) => {
                 const li = document.createElement('li');
                 const a = document.createElement('a');
-
 
                 // 包含车站所有信息的 div
                 const stationItemDiv = document.createElement('div');
@@ -240,6 +307,7 @@
                 iconsDiv.style.gap = '1px'; // 图标之间的间距
 
                 station.lines.forEach((line, lineIndex) => {
+                    // 为每个线路创建容器
                     const lineIcon = document.createElement('span');
                     lineIcon.style.position = 'relative';
 
@@ -360,13 +428,29 @@
                 li.appendChild(a);
                 stationList.appendChild(li);
 
-                // 计算行高并在 DOM 加载完成后更新竖条高度
                 requestAnimationFrame(() => {
+                    // 计算行高并在 DOM 加载完成后更新竖条高度
                     const lineHeight = stationItemDiv.offsetHeight;
                     lineBarUp.style.height = `${lineHeight}px`;
                     lineBarDown.style.height = `${lineHeight}px`;
+                    // 调整站名文本长度
+                    adjustFontSize(stationNameDiv, 7);
                 });
             });
+        }
+
+         // 调用车站列表
+        function fetchAndShowStations(lineNoStr) {
+            fetch(`/get_stations_for_line/${lineNoStr}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.stations) {
+                        showStations(data, true);
+                    } else {
+                        console.error('No stations found for the line.');
+                    }
+                })
+                .catch(error => console.error('Error fetching stations:', error));
         }
 
         // 搜索车站
@@ -394,46 +478,47 @@
             const lineList = document.getElementById('line-list');
 
             // 获取线路列表中的第一条线路
-            const firstLineLink = lineList.querySelector('a[data-line-id]');
-            const firstLineId = firstLineLink ? firstLineLink.getAttribute('data-line-id') : null;
+            const firstLineLink = lineList.querySelector('a[data-line-no]');
+            const firstLineNoStr = firstLineLink ? firstLineLink.getAttribute('data-line-no') : null;
 
             // 页面加载时显示第一条线路的车站列表
-            if (firstLineId) {
-                fetch(`/get_stations_for_line/${firstLineId}/`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.stations) {
-                            showStations(data, true)
-                        } else {
-                            console.error('No stations found for the line.');
-                        }
-                    })
-                    .catch(error => console.error('Error fetching stations:', error));
+            if (firstLineNoStr) {
+                fetchAndShowStations(firstLineNoStr);
             }
 
             // 点击线路列表项时更新车站列表
             lineList.addEventListener('click', function(event) {
+                // 清空现有的车站列表
+                const stationList = document.getElementById('station-list');
+                stationList.innerHTML = '';
+
                 event.preventDefault();
                 const link = event.target.closest('a');
                 if (link) {
-                    const lineId = link.getAttribute('data-line-id');
-                    fetch(`/get_stations_for_line/${lineId}/`)
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.stations) {
-                                showStations(data, true)
-                            } else {
-                                console.error('No stations found for the line.');
-                            }
-                        })
-                        .catch(error => console.error('Error fetching stations:', error));
+                    const lineNoStr = link.getAttribute('data-line-no'); // getAttribute返回的是字符串类型
+
+                    if (lineNoStr === "3") { // 3号线显示3北
+                        fetchAndShowStations('3.5');
+                    }
+                    else if (lineNoStr === "14") { // 14号线显示14支
+                        fetchAndShowStations('14.5');
+                    }
+
+                    fetchAndShowStations(lineNoStr);
                 }
             });
 
 
         });
 
+        // 在DOM加载完后检测文本过长
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.end-stations-list').forEach(function(listEl) {
+                adjustFontSizesInList(listEl, 13);
+            });
 
+
+        });
 
     </script>
 </body>

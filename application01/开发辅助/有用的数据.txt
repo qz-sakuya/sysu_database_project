@@ -1,18 +1,36 @@
 1号线
 西塱,坑口,花地湾,芳村,黄沙,长寿路,陈家祠,西门口,公园前,农讲所,烈士陵园,东山口,杨箕,体育西路,体育中心,广州东站
-（注意不是西朗站）
+注意：西塱，不是西朗
 
 2号线
 广州南站,石壁,会江,南浦,洛溪,南洲,东晓南,江泰路,昌岗,江南西,市二宫,海珠广场,公园前,纪念堂,越秀公园,
 广州火车站,三元里,飞翔公园,白云公园,白云文化广场,萧岗,江夏,黄边,嘉禾望岗
 
 3号线
+略
+
+注意是中文括号： 机场南（1号航站楼）、 机场北（2号航站楼）
+
+4号线
+注意：官桥未开通
+
+6号线
+注意：沙河未开通
 
 
 
 
 
+已经添加的换乘：
+公园前
 
+已经添加的设施:
+python manage.py add_data add_facility "广州东站" "火车站" --image_name="railway"
+python manage.py add_data add_facility "广州东站" "城际" --image_name="intercity"
+python manage.py add_data add_facility "广州南站" "火车站" --image_name="railway"
+python manage.py add_data add_facility "广州南站" "城际" --image_name="intercity"
+python manage.py add_data add_facility "广州火车站" "火车站" --image_name="railway"
+python manage.py add_data add_facility "广州火车站" "城际" --image_name="intercity"
 
 
 

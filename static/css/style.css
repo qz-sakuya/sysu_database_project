@@ -39,11 +39,11 @@ header {
 }
 
 .left-panel {
-    flex-basis: 17.5%;
+    flex-basis: 27.5%;
 }
 
 .middle-panel {
-    flex-basis: 55%;
+    flex-basis: 45%;
 }
 
 .right-panel {

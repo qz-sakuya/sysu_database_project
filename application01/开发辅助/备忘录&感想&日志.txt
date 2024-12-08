@@ -21,7 +21,7 @@
 需要第三方库django-opengauss-backend
 
 
-
+http://127.0.0.1:8000/admin
 
 读取图中数据，帮我编写命令，不需要写注释。命令结构参考：
 添加首班车数据
@@ -55,10 +55,4 @@ python manage.py add_data add_last_train "1号线" "西塱" down 23:00
 
 
 
-已经添加的设施:
-python manage.py add_data add_facility "广州东站" "火车站" --image_name="railway"
-python manage.py add_data add_facility "广州东站" "城际" --image_name="intercity"
-python manage.py add_data add_facility "广州南站" "火车站" --image_name="railway"
-python manage.py add_data add_facility "广州南站" "城际" --image_name="intercity"
-python manage.py add_data add_facility "广州火车站" "火车站" --image_name="railway"
-python manage.py add_data add_facility "广州火车站" "城际" --image_name="intercity"
+

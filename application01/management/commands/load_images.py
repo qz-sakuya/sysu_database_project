@@ -5,7 +5,7 @@ from application01.models import Image
 '''
 
 命令行读取图片，示例：
-python manage.py load_images "D:\Desktop\数据库大作业\图片\intercity.png"
+python manage.py load_images "D:\Desktop\数据库大作业\图片\line-map.png"
 
 '''
 

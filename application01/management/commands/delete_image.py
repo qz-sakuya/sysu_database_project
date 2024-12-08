@@ -5,7 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 '''
 
 命令行删除图片，示例：
-python manage.py delete_image intercity
+python manage.py delete_image line-map
 
 '''
 

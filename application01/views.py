@@ -18,24 +18,45 @@ import base64
 
 # 初始视图
 def index(request):
-    # 获取线路，排除3北
-    lines = Line.objects.exclude(line_no=3.5).order_by('line_no')
+    lines = Line.objects.order_by('line_no')
+    line_data = []
+
+    # 创建一个线路到终点站的字典
+    line_endpoints = {}
 
     # 获取每条线路的起终点站
     for line in lines:
-        platforms = Platform.objects.filter(line=line).order_by('platform_no')
-        if platforms.exists():
-            min_platform = platforms.first()
-            max_platform = platforms.last()
+        if line.line_no not in line_endpoints:
+            platforms = Platform.objects.filter(line=line.id).order_by('platform_no')
+            if platforms.exists():
+                min_platform = platforms.first()
+                max_platform = platforms.last()
+                line_endpoints[line.line_no] = {
+                    'min_station_name': min_platform.station.station_name,
+                    'max_station_name': max_platform.station.station_name
+                }
+            else:
+                line_endpoints[line.line_no] = {
+                    'min_station_name': '',
+                    'max_station_name': ''
+                }
 
-            line.min_station_name = min_platform.station.station_name
-            line.max_station_name = max_platform.station.station_name
-        else:
-            line.min_station_name = ''
-            line.max_station_name = ''
+    # 绑定起终点站信息
+    for line in lines:
+        if line.line_no in ['3.5', '14.5']:
+            continue
+        line.end_stations = [line_endpoints[line.line_no]]
+
+        # 3和3北，14和14支线合并储存
+        if line.line_no == '3':
+            line.end_stations.append(line_endpoints['3.5'])
+        elif line.line_no == '14':
+            line.end_stations.append(line_endpoints['14.5'])
+
+        line_data.append(line)
 
     context = {
-        'lines': lines,
+        'lines': line_data,
     }
     return render(request, 'application01/index.html', context)
 
@@ -60,7 +81,7 @@ def get_stations(stations, current_line=None):
     # 创建一个线路到终点站的字典
     line_endpoints = {}
 
-    # 获取每个车站经过的所有线路及其标识色和线路编号
+    # 获取每个车站的所有相关信息
     station_list = []
     for station in stations:
 
@@ -71,13 +92,23 @@ def get_stations(stations, current_line=None):
         # 更新线路到终点站的字典
         for line in have_lines:
             if line.id not in line_endpoints:
-                platforms = Platform.objects.filter(line=line.id).order_by('platform_no')
+                platforms = Platform.objects.filter(line=line).order_by('platform_no')
+
                 if platforms.exists():
                     min_platform = platforms.first()
                     max_platform = platforms.last()
+
+                    # 获取车站名称并处理特殊情况
+                    min_station_name = min_platform.station.station_name
+                    max_station_name = max_platform.station.station_name
+
+                    # 机场北文本缩短
+                    if max_station_name == "机场北（2号航站楼）":
+                        max_station_name = "机场北"
+
                     line_endpoints[line.id] = {
-                        'min_station_name': min_platform.station.station_name,
-                        'max_station_name': max_platform.station.station_name
+                        'min_station_name': min_station_name,
+                        'max_station_name': max_station_name
                     }
                 else:
                     line_endpoints[line.id] = {
@@ -114,7 +145,8 @@ def get_stations(stations, current_line=None):
                     'departure_time': departure_time_str
                 })
 
-        # 将线路数据转为字典
+        # 对线路数据进行处理
+        # 首先转为字典
         lines_data = [
             {
                 'id': line.id,
@@ -124,24 +156,26 @@ def get_stations(stations, current_line=None):
             for line in have_lines
         ]
 
+        # 将当前查询的线路提前
+        if current_line:
+            lines_data.sort(key=lambda x: (x['line_no'] != current_line.line_no, x['line_no']))
+
         # 修正3北和14支线路编号
         for line in lines_data:
             if line['line_no'] == '3.5':
                 line['line_no'] = '3'
-
-        # 去重
-        seen = set()
+            if line['line_no'] == '14.5':
+                line['line_no'] = '14'
+        seen = set()  # 去重
         unique_lines_data = []
         for line in lines_data:
-            key = (line['id'], line['line_no'])
+            key = line['line_no']
             if key not in seen:
                 seen.add(key)
                 unique_lines_data.append(line)
         lines_data = unique_lines_data
 
-        # 将当前查询的线路提前
-        if current_line:
-            lines_data.sort(key=lambda x: (x['id'] != current_line.id, x['line_no']))
+
 
         # 获取车站的设施信息
         facilities = StationFacility.objects.filter(station=station).select_related('icon_image').order_by(
@@ -166,10 +200,10 @@ def get_stations(stations, current_line=None):
     return station_list
 
 
-def get_stations_for_line(request, line_id):
+def get_stations_for_line(request, line_no):
     if request.method == 'GET':
         try:
-            current_line = Line.objects.get(id=line_id)
+            current_line = Line.objects.get(line_no=line_no)
             platforms = Platform.objects.filter(line=current_line).order_by('-platform_no')
 
             stations = []
