@@ -14,11 +14,15 @@ from application01.models import Line, Platform, Station, Exit, Section, Transfe
 
 from django.core.exceptions import ObjectDoesNotExist
 import base64
+from django.db.models import FloatField
+from django.db.models.functions import Cast
 
 
 # 初始视图
 def index(request):
-    lines = Line.objects.order_by('line_no')
+    lines = Line.objects.annotate(
+        line_no_float=Cast('line_no', FloatField())
+    ).order_by('line_no_float')  # 转为浮点数排序
     line_data = []
 
     # 创建一个线路到终点站的字典
@@ -41,17 +45,20 @@ def index(request):
                     'max_station_name': ''
                 }
 
-    # 绑定起终点站信息
     for line in lines:
         if line.line_no in ['3.5', '14.5']:
             continue
-        line.end_stations = [line_endpoints[line.line_no]]
+        line.end_stations = [line_endpoints[line.line_no]]  # 添加起终点站信息
 
-        # 3和3北，14和14支线合并储存
+        # 3和3北，14和14支线合并储存终点站
         if line.line_no == '3':
             line.end_stations.append(line_endpoints['3.5'])
         elif line.line_no == '14':
             line.end_stations.append(line_endpoints['14.5'])
+
+        # 100-200代表广佛线和佛山地铁，替换为实际编号
+        if line.line_no == '100':
+            line.line_no = 'GF'
 
         line_data.append(line)
 
@@ -160,12 +167,14 @@ def get_stations(stations, current_line=None):
         if current_line:
             lines_data.sort(key=lambda x: (x['line_no'] != current_line.line_no, x['line_no']))
 
-        # 修正3北和14支线路编号
+        # 修正3北、14支、广佛线线路编号
         for line in lines_data:
             if line['line_no'] == '3.5':
                 line['line_no'] = '3'
             if line['line_no'] == '14.5':
                 line['line_no'] = '14'
+            if line['line_no'] == '100':
+                line['line_no'] = 'GF'
         seen = set()  # 去重
         unique_lines_data = []
         for line in lines_data:
@@ -174,8 +183,6 @@ def get_stations(stations, current_line=None):
                 seen.add(key)
                 unique_lines_data.append(line)
         lines_data = unique_lines_data
-
-
 
         # 获取车站的设施信息
         facilities = StationFacility.objects.filter(station=station).select_related('icon_image').order_by(
@@ -203,6 +210,10 @@ def get_stations(stations, current_line=None):
 def get_stations_for_line(request, line_no):
     if request.method == 'GET':
         try:
+            # 将实际编号转为数字
+            if line_no == 'GF':
+                line_no = '100'
+
             current_line = Line.objects.get(line_no=line_no)
             platforms = Platform.objects.filter(line=current_line).order_by('-platform_no')
 
@@ -233,6 +244,7 @@ def get_stations_for_search(request):
                 return JsonResponse({'stations': []})
 
             station_list = get_stations(list(stations))
+
             return JsonResponse({'stations': station_list})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)

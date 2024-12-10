@@ -7,7 +7,17 @@
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <style>
+        .left-panel {
+            flex-basis: 17.5%;
+        }
 
+        .middle-panel {
+            flex-basis: 55%;
+        }
+
+        .right-panel {
+            flex-basis: 17.5%;
+        }
 
         /* 线路图标 */
         .color-circle {
@@ -76,7 +86,7 @@
         /* 车站列表项-竖条样式 */
         .line-bar-up {
             position: absolute;
-            bottom: 100%;
+            bottom: 70%;
             left: 27%;
             width: 8px;
             z-index: 1;
@@ -94,6 +104,7 @@
             display: flex;
             align-items: center;
             width: 30%;
+
         }
 
         /* 车站列表项-末班车信息 */
@@ -101,12 +112,14 @@
             display: flex;
             align-items: center;
             width: 30%;
+
         }
 
         /* 车站列表项-首末班车文本*/
         .train-label {
             padding-right: -5px;
             font-size: 0.88em;
+
         }
 
         .train-direction {
@@ -123,12 +136,14 @@
             text-align: right;
             flex: 1;
             font-size: 0.5em;
+            color: #333;
         }
 
         .train-time-data {
             margin-top: 2px;/* 对齐文字 */
             font-size: 0.77em;
             width: 40%;
+            color: #222;
         }
 
         /* 车站列表项-更多功能按钮 */
@@ -461,6 +476,10 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.stations) {
+                            // 清空现有的车站列表
+                            const stationList = document.getElementById('station-list');
+                            stationList.innerHTML = '';
+
                             showStations(data);
                         } else if (data.error) {
                             console.error('Error:', data.error);

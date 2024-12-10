@@ -9,11 +9,11 @@ python manage.py delete_data delete_line "1号线"
 （线路名）
 
 删除车站数据
-python manage.py delete_data delete_station "机场北 (2号航站楼)"
+python manage.py delete_data delete_station "礌岗"
 （车站名）
 
 删除站台数据
-python manage.py delete_data delete_platform "1号线" "西塱"
+python manage.py delete_data delete_platform "广佛线" "西塱"
 （线路名，车站名）
 注：根据车站名寻找站台
 

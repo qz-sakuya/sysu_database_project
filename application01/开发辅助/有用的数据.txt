@@ -17,9 +17,11 @@
 6号线
 注意：沙河未开通
 
+9号线：
+注意：清㘵
 
-
-
+广佛线：
+注意：𧒽岗（𧒽字在pycharm终端无法输入）
 
 已经添加的换乘：
 公园前
@@ -46,28 +48,14 @@ python manage.py add_data add_facility "广州火车站" "城际" --image_name="
 8号线	bg-line8	box-line8	num-line8	#008C95	321 C
 9号线	bg-line9	box-line9	num-line9	#71CC98	346 C
 13号线	bg-line13	box-line13	num-line13	#8E8C13	582 C
-14号线
-知识城支线	bg-line14	box-line14	num-line14	#81312F	181 C
+14号线   bg-line14	box-line14	num-line14	#81312F	181 C
+
+18号线	bg-Line18	box-Line18	num-Line18	#1f4db6	514 C
+21号线	bg-line21	box-line21	num-line21	#1b1752	275 C
+22号线	bg-line22	box-line22	num-line22	#be5a35	282 C
+
 广佛线	bg-lineGF	box-lineGF	num-lineGF	#C4D600	382 C
 APM线	bg-lineAPM	box-lineAPM	num-lineAPM	#00B5E2	306 C
-有轨电车
 THZ1线	bg-lineTHZ1	box-lineTHZ1	num-lineTHZ1	#44A729	361 C
 
 
-未建成
-
-注意：以下线路尚未开通，标志色仅供参考。线路开通时，标志色可能会发生变化。
-线路	背景色类名	外框类名	分隔符类名	颜色代码	Pantone色号
-10号线	bg-line10	box-line10	num-line10	#7D9BC1	652 C
-11号线	bg-line11	box-line11	num-line11	#470A68	2617 C
-12号线	bg-line12	box-line12	num-line12	#59621D	378 C
-14号线	bg-line14	box-line14	num-line14	#81312F	181 C
-15号线	bg-line15	box-line15	num-line15	#AE8A79	4725 C
-16号线	bg-line16	box-line16	num-line16	#9E652E	730 C
-17号线	bg-line17	box-line17	num-line17	#8B84D7	2715 C
-18号线	bg-Line18	box-Line18	num-Line18	#D48BC8	514 C
-19号线	bg-line19	box-line19	num-line19	#BB29BB	Purple C
-20号线	bg-line20	box-line20	num-line20	#D9017A	Process Magenta C
-21号线	bg-line21	box-line21	num-line21	#201747	275 C
-22号线	bg-line22	box-line22	num-line22	#041E42	282 C
-未知线路	bg-UC	box-UC	num-UC	#999	N/A

@@ -1,4 +1,6 @@
-def creat_station_cmd(station_list, line, no_start, reverse=True, skip = None):
+def creat_station_cmd(station_list, line, no_start, reverse=True, skip=None):
+    if skip is None:
+        skip = []
     if reverse:
         station_list = station_list[::-1]
     for station in station_list:
@@ -23,12 +25,15 @@ def creat_station_cmd(station_list, line, no_start, reverse=True, skip = None):
         print(cmd_str)
         section_no += 1
 
-stations = [
-    "黄村", "车陂", "车陂南", "万胜围", "官洲", "大学城北", "大学城南", "新造", "石碁",
-    "海傍", "低涌", "东涌", "庆盛", "黄阁汽车城", "黄阁", "蕉门", "金洲", "飞沙角",
-    "广隆", "大涌", "塘坑", "南横", "南沙客运港"
+
+stations =stations = [
+    "新城东", "东平", "世纪莲", "澜石", "魁奇路", "季华园", "同济路", "祖庙", "普君北路",
+    "朝安", "桂城", "南桂路", "岗", "千灯湖", "金融高新区", "龙溪", "菊树", "西塱",
+    "鹤洞", "沙涌", "沙园", "燕岗", "石溪", "南洲", "沥滘"
 ]
+
+
 
 if __name__ == '__main__':
     # 记得改线路号！！！！！！！！！！！！！
-    creat_station_cmd(stations, '4号线', 1, True, skip=[16])
+    creat_station_cmd(stations, '广佛线', 1, False,[])
