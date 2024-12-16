@@ -77,7 +77,47 @@ button:hover {
 }
 
 
+/* 切换类按钮 */
+.toggle-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px; /* 拉开与上方元素的距离 */
+}
 
+.toggle-btn {
+    background-color: white; /* 默认白色 */
+    border: 1px solid var(--theme-color);
+    color: var(--theme-color);
+    flex-grow: 1;
+    margin-left: 5px;
+    margin-right: 5px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.toggle-btn.active {
+    background-color: var(--theme-color);
+    color: white;
+}
+
+
+/* 车站列表项-更多功能按钮 */
+.station-options-popup {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    background-color: white;
+    border: 1px solid #ccc;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.station-options-popup li {
+    padding: 8px 16px;
+    cursor: pointer;
+}
+
+.station-options-popup li:hover {
+    background-color: #f0f0f0;
+}
 
 
 /* 输入框 */

@@ -42,7 +42,7 @@ python manage.py add_data add_last_train "1号线" "西塱" down 23:00
 注：根据车站名寻找站台
 
 添加设施标识数据
-python manage.py add_data add_facility "广州东站" "火车站" --image_name="railway"
+python manage.py add_data add_facility "广州北站" "火车站" --image_name="railway"
 （车站名，设施名，图片名）
 
 '''

@@ -27,12 +27,27 @@
 公园前
 
 已经添加的设施:
-python manage.py add_data add_facility "广州东站" "火车站" --image_name="railway"
-python manage.py add_data add_facility "广州东站" "城际" --image_name="intercity"
-python manage.py add_data add_facility "广州南站" "火车站" --image_name="railway"
-python manage.py add_data add_facility "广州南站" "城际" --image_name="intercity"
+python manage.py add_data add_facility "广州北站" "火车站" --image_name="railway"
+
 python manage.py add_data add_facility "广州火车站" "火车站" --image_name="railway"
 python manage.py add_data add_facility "广州火车站" "城际" --image_name="intercity"
+
+python manage.py add_data add_facility "石潭" "火车站" --image_name="railway"
+python manage.py add_data add_facility "石潭" "城际" --image_name="intercity"
+
+python manage.py add_data add_facility "广州南站" "火车站" --image_name="railway"
+python manage.py add_data add_facility "广州南站" "城际" --image_name="intercity"
+
+python manage.py add_data add_facility "庆盛" "火车站" --image_name="railway"
+
+python manage.py add_data add_facility "新塘" "火车站" --image_name="railway"
+python manage.py add_data add_facility "新塘" "城际" --image_name="intercity"
+
+python manage.py add_data add_facility "广州东站" "火车站" --image_name="railway"
+python manage.py add_data add_facility "广州东站" "城际" --image_name="intercity"
+
+python manage.py add_data add_facility "机场北（2号航站楼）" "机场" --image_name="airport"
+python manage.py add_data add_facility "机场南（1号航站楼）" "机场" --image_name="airport"
 
 
 

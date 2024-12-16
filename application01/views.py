@@ -14,8 +14,11 @@ from application01.models import Line, Platform, Station, Exit, Section, Transfe
 
 from django.core.exceptions import ObjectDoesNotExist
 import base64
-from django.db.models import FloatField
+from django.db.models import FloatField, Max
 from django.db.models.functions import Cast
+
+from collections import defaultdict
+import heapq
 
 
 # 初始视图
@@ -207,6 +210,7 @@ def get_stations(stations, current_line=None):
     return station_list
 
 
+# 点击线路列表显示车站
 def get_stations_for_line(request, line_no):
     if request.method == 'GET':
         try:
@@ -229,6 +233,7 @@ def get_stations_for_line(request, line_no):
         return JsonResponse({'error': 'Invalid request method'}, status=400)
 
 
+# 搜索车站
 def get_stations_for_search(request):
     if request.method == 'GET':
         search_text = request.GET.get('search_text', '').strip()
@@ -250,3 +255,177 @@ def get_stations_for_search(request):
             return JsonResponse({'error': str(e)}, status=500)
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+
+# 计算路径
+def calculate_path(request, start_station_name, end_station_name):
+    if request.method == 'GET':
+        try:
+            # 获取起点站和终点站
+            try:
+                start_station = Station.objects.get(station_name=start_station_name)
+            except ObjectDoesNotExist:
+                return JsonResponse({'error': f'未找到名为 "{start_station_name}" 的起点站'}, status=400)
+
+            try:
+                end_station = Station.objects.get(station_name=end_station_name)
+            except ObjectDoesNotExist:
+                return JsonResponse({'error': f'未找到名为 "{end_station_name}" 的终点站'}, status=400)
+
+            start_platforms = Platform.objects.filter(station=start_station)
+            end_platforms = Platform.objects.filter(station=end_station)
+
+            # 构建图并加入超级源点和超级汇点
+            graph, super_source_id, super_sink_id = build_graph_with_super_nodes(start_platforms, end_platforms)
+
+            # 使用Dijkstra算法计算最短路径
+            total_time, path_ids = dijkstra(graph, super_source_id, super_sink_id)
+
+            # 解析路径以统计车站数、换乘数等信息
+            result = parse_path(path_ids, super_source_id, super_sink_id)
+
+            # 由于数据来源不准的临时修正
+            total_time = int(total_time * 1.2)
+
+            return JsonResponse({
+                'total_time': total_time,
+                'station_count': result['station_count'],
+                'transfer_count': result['transfer_count'],
+                'path': result['path']
+            })
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+
+def build_graph_with_super_nodes(start_platforms, end_platforms):
+    graph = defaultdict(list)
+
+    # 为超级源点和超级汇点分配id
+    max_id = Platform.objects.aggregate(Max('id'))['id__max'] or 0
+    super_source_id = max_id + 1
+    super_sink_id = max_id + 2
+
+    # 添加超级源点到所有起点站台的边（成本为0）
+    for platform in start_platforms:
+        graph[super_source_id].append((platform.id, 0))
+        graph[platform.id].append((super_source_id, 0))
+
+    # 添加超级汇点从所有终点站台的边（成本为0）
+    for platform in end_platforms:
+        graph[platform.id].append((super_sink_id, 0))
+        graph[super_sink_id].append((platform.id, 0))
+
+    # 构建实际的图结构
+    for section in Section.objects.select_related('platform1', 'platform2').all():
+        graph[section.platform1.id].append((section.platform2.id, section.travel_time))
+        graph[section.platform2.id].append((section.platform1.id, section.travel_time))
+
+    for transfer in Transfer.objects.select_related('platform1', 'platform2').all():
+        graph[transfer.platform1.id].append((transfer.platform2.id, transfer.transfer_time))
+        graph[transfer.platform2.id].append((transfer.platform1.id, transfer.transfer_time))
+
+    return graph, super_source_id, super_sink_id
+
+
+def dijkstra(graph, start, end):
+    queue = [(0, start, [])]
+    visited = set()
+
+    while queue:
+        (cost, current, path) = heapq.heappop(queue)
+
+        if current not in visited:
+            visited.add(current)
+            path = path + [current]
+
+            if current == end:
+                return cost, path
+
+            for neighbor, time_cost in graph[current]:
+                if neighbor not in visited:
+                    heapq.heappush(queue, (cost + time_cost, neighbor, path))
+
+    return float("inf"), []
+
+
+def parse_path(path_ids, super_source_id, super_sink_id):
+    result = {
+        'station_count': 0,
+        'transfer_count': 0,
+        'path': []
+    }
+    prev_platform = None
+    prev_line = None
+    take_count = 0
+
+    # 创建一个线路到终点站的字典
+    line_endpoints = {}
+
+    for i, node in enumerate(path_ids):
+        if node == super_source_id or node == super_sink_id:
+            continue  # 忽略超级源点和超级汇点
+
+        platform = Platform.objects.get(id=node)
+        line = Line.objects.get(id=platform.line_id)
+
+        # 更新线路终点站字典
+        if line.id not in line_endpoints:
+            platforms = Platform.objects.filter(line=line).order_by('platform_no')
+
+            if platforms.exists():
+                min_platform = platforms.first()
+                max_platform = platforms.last()
+                line_endpoints[line.id] = {
+                    'min_station_name': min_platform.station.station_name,
+                    'max_station_name': max_platform.station.station_name
+                }
+            else:
+                line_endpoints[line.id] = {
+                    'min_station_name': '',
+                    'max_station_name': ''
+                }
+
+        # 处理起点站
+        if prev_platform is None:
+            result['path'].append(
+                {'text': platform.station.station_name, 'line_no': line.line_no, 'colour': line.colour})
+
+        if prev_platform and prev_platform.line_id != platform.line_id:  # 换乘
+            result['transfer_count'] += 1
+
+            # 上一条线路的站数和末站
+            result['path'].append({'text': f"（共{take_count}站）", 'line_no': "站数", 'colour': prev_line.colour})
+            result['path'].append(
+                {'text': prev_platform.station.station_name, 'line_no': prev_line.line_no, 'colour': prev_line.colour})
+
+            # 换乘信息
+            next_platform_id = path_ids[i + 1] if i + 1 < len(path_ids) else None
+            next_platform = Platform.objects.get(id=next_platform_id)
+            if next_platform.platform_no > platform.platform_no:
+                direction_name = line_endpoints[platform.line_id]['max_station_name'] or '上行'
+            else:
+                direction_name = line_endpoints[platform.line_id]['min_station_name'] or '下行'
+            transfer_text = f"换乘{line.line_name}的{direction_name}方向"
+            result['path'].append({'text': transfer_text, 'line_no': "换乘", 'colour': "#999"})
+
+            # 当前线路的首站
+            result['path'].append(
+                {'text': platform.station.station_name, 'line_no': line.line_no, 'colour': line.colour})
+            take_count = 0
+        else:
+            result['station_count'] += 1
+
+        prev_platform = platform
+        prev_line = line
+        take_count += 1
+
+    # 处理终点站
+    result['path'].append({'text': f"（共{take_count}站）", 'line_no': "站数", 'colour': prev_line.colour})
+    result['path'].append(
+        {'text': prev_platform.station.station_name, 'line_no': prev_line.line_no, 'colour': prev_line.colour})
+
+    return result

@@ -163,6 +163,16 @@
             background-color: #bbb;
         }
 
+        /* 路径列表 */
+        .path-list {
+            display: flex;
+            flex-direction: column; /* 列方向排列 */
+            list-style: none; /* 移除默认的列表样式 */
+            padding: 0; /* 移除默认的内边距 */
+            margin: 0; /* 移除默认的外边距 */
+            height: 100%; /* 确保 ul 有明确的高度 */
+        }
+
     </style>
 </head>
 <body>
@@ -206,6 +216,16 @@
                     <input type="text" id="end-station" placeholder="选择或输入终点站">
                     <br>
                     <button type="button" class="path-calculate-button">计算路线</button>
+                    <div class="toggle-buttons">
+                        <button type="button" class="toggle-btn active" data-mode="fastest">最短时间</button>
+                        <button type="button" class="toggle-btn" data-mode="fewest-changes">最少换乘</button>
+                    </div>
+                    <div id="path-info">
+                        <!-- 默认情况下为空 -->
+                    </div>
+                    <ul id="path-list">
+                        <!-- 默认情况下为空 -->
+                    </ul>
                 </form>
             </div>
         </div>
@@ -215,6 +235,24 @@
         // 显示输入框
         document.querySelector('.line-map-button').addEventListener('click', function() {
             window.open('/show_line_map/', '_blank');
+        });
+
+        // 路径模式按钮切换
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleButtons = document.querySelectorAll('.toggle-btn');
+
+            toggleButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    toggleButtons.forEach(btn => btn.classList.remove('active'));
+
+                    // Add active class to the clicked button
+                    this.classList.add('active');
+
+                    // You can add additional logic here to handle the mode change
+                    console.log('Selected mode:', this.getAttribute('data-mode'));
+                });
+            });
         });
 
         // 文本过长时自动减少字体大小
@@ -283,6 +321,9 @@
         // 绘制车站列表
         function showStations(data, show_line_bar = false){
             const stationList = document.getElementById('station-list');
+            // 路径查询的输入框
+            const startStationInput = document.getElementById('start-station');
+            const endStationInput = document.getElementById('end-station');
 
             // 获取第一个车站的第一个线路的颜色
             const firstStation = data.stations[0];
@@ -429,6 +470,63 @@
                 station_options_button.className = 'station-options-button';
                 station_options_button.textContent = '>';
 
+                // 添加点击事件监听器给跳转按钮
+                station_options_button.addEventListener('click', function(event) {
+                    event.preventDefault(); // 阻止默认行为
+
+                    // 创建临时子列表
+                    const optionsPopup = document.createElement('ul');
+                    optionsPopup.className = 'station-options-popup';
+                    // 设置临时子列表的位置并添加到 DOM
+                    const rect = station_options_button.getBoundingClientRect();// 获取按钮的位置信息
+                    optionsPopup.style.position = 'absolute';
+                    optionsPopup.style.top = `${window.scrollY + rect.bottom}px`; // 放置在按钮下方，考虑页面滚动
+                    optionsPopup.style.left = `${window.scrollX + rect.left}px`;  // 与按钮左边对齐，考虑页面滚动
+                    document.body.appendChild(optionsPopup);
+
+                    // 创建选项并添加到临时子列表
+                    ['填入起点', '填入终点','车站信息'].forEach(optionText => {
+                        const optionItem = document.createElement('li');
+                        optionItem.textContent = optionText;
+
+                        optionsPopup.appendChild(optionItem);
+
+                        if (optionText !== '车站信息') {
+                            optionItem.addEventListener('click', () => {
+                                if (optionText === '填入起点') {
+                                    startStationInput.value = station.name;
+                                } else if (optionText === '填入终点') {
+                                    endStationInput.value = station.name;
+                                }
+                                // 移除临时子列表
+                                optionsPopup.remove();
+                            });
+                        }
+                    });
+
+                    // 点击子列表外部关闭临时子列表
+                    let closeOptionsPopupListener = null;
+                    setTimeout(() => {
+                        closeOptionsPopupListener = function(e) {
+                            // 如果点击的目标不是子列表本身也不是其任何子元素，则关闭子列表
+                            if (!optionsPopup.contains(e.target)) {
+                                removeOptionsPopup();
+                            }
+                        };
+                        document.addEventListener('click', closeOptionsPopupListener);
+                    }, 1); // 延迟1ms避免过早关闭
+
+                    function removeOptionsPopup() {
+                        if (optionsPopup && document.body.contains(optionsPopup)) {
+                            optionsPopup.remove();
+                            if (closeOptionsPopupListener) {
+                                document.removeEventListener('click', closeOptionsPopupListener);
+                                closeOptionsPopupListener = null;
+                            }
+                        }
+                    }
+                });
+
                 // 将各项添加到 stationItemDiv 中
                 stationItemDiv.appendChild(stationNameDiv);
                 stationItemDiv.appendChild(iconsDiv);
@@ -535,9 +633,124 @@
             document.querySelectorAll('.end-stations-list').forEach(function(listEl) {
                 adjustFontSizesInList(listEl, 13);
             });
-
-
         });
+
+        // 计算路径
+        document.querySelector('.path-calculate-button').addEventListener('click', function() {
+            const startStationInput = document.getElementById('start-station');
+            const endStationInput = document.getElementById('end-station');
+
+            const startStationName = startStationInput.value.trim();
+            const endStationName = endStationInput.value.trim();
+
+            if (startStationName && endStationName) {
+                // 构建URL
+                const url = `/calculate_path/${encodeURIComponent(startStationName)}/${encodeURIComponent(endStationName)}/`;
+                fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => Promise.reject(err));
+                    }
+                    return response.json();
+                })
+                .then(data => showPaths(data))
+                .catch(error => {
+                    console.error('Error:', error);
+                    //alert(`发生错误: ${error.error || '未知错误'}`);
+                });
+            } else {
+                alert('起点站或终点站为空');
+            }
+        });
+
+        // 绘制路径信息
+        function showPaths(data) {
+            const pathInfoDiv = document.getElementById('path-info');
+            const pathList = document.getElementById('path-list');
+
+            // 清空现有内容
+            pathInfoDiv.innerHTML = '';
+            pathList.innerHTML = '';
+
+            // 显示总时间、车站数、换乘数
+            pathInfoDiv.innerHTML = `
+                总时间: ${data.total_time} 分钟 <br>
+                经过车站数: ${data.station_count} <br>
+                换乘次数: ${data.transfer_count}
+            `;
+
+            // 显示路径详情
+            data.path.forEach(item => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+
+                // 创建包含路径所有信息的 div
+                const pathItemDiv = document.createElement('div');
+                pathItemDiv.style.display = 'flex';
+                pathItemDiv.style.alignItems = 'center';
+                pathItemDiv.style.width = '100%';
+                pathItemDiv.style.margin = '0';
+                pathItemDiv.style.padding = '0';
+
+                // 创建竖条
+                const lineBarUp = document.createElement('div');
+                lineBarUp.className = 'line-bar-up';
+                lineBarUp.style.backgroundColor = item.colour;
+
+                const lineBarDown = document.createElement('div');
+                lineBarDown.className = 'line-bar-down';
+                lineBarDown.style.backgroundColor = item.colour;
+
+                // 创建线路编号和设施图标的 div
+                const iconsDiv = document.createElement('div');
+                iconsDiv.className = 'station-icons';
+                iconsDiv.style.display = 'flex';
+                iconsDiv.style.alignItems = 'center';
+                iconsDiv.style.gap = '1px';
+
+                // 线路标识
+                const lineIcon = document.createElement('span');
+                lineIcon.style.position = 'relative';
+
+                if (item.line_no !== "站数" && item.line_no !== "换乘") {
+                    const lineCircle = document.createElement('span');
+                    lineCircle.className = 'color-circle';
+                    lineCircle.style.borderColor = item.colour;
+                    const lineNoSpan = document.createElement('span');
+                    lineNoSpan.textContent = item.line_no;
+                    lineCircle.appendChild(lineNoSpan);
+                    lineIcon.appendChild(lineCircle);
+                }
+
+                // 根据条件添加竖条
+                lineIcon.appendChild(lineBarUp);
+                lineIcon.appendChild(lineBarDown);
+
+                iconsDiv.appendChild(lineIcon);
+
+                // 创建文本的 div
+                const pathTextDiv = document.createElement('div');
+                pathTextDiv.style.width = '50%';
+                pathTextDiv.textContent = item.text;
+
+                // 将各项添加到 pathItemDiv 中
+                pathItemDiv.appendChild(iconsDiv);
+                pathItemDiv.appendChild(pathTextDiv);
+
+                // 将 pathItemDiv 添加到 a 标签中
+                a.appendChild(pathItemDiv);
+
+                // 将 a 标签添加到 li 中
+                li.appendChild(a);
+                pathList.appendChild(li);
+            });
+        }
+
 
     </script>
 </body>

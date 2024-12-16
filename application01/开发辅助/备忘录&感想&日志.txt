@@ -56,3 +56,48 @@ python manage.py add_data add_last_train "1号线" "西塱" down 23:00
 
 
 
+
+
+
+
+
+
+
+
+根据这个模型，帮我写一个视图函数：使用dj寻路算法，根据起始站台，和终点站台计算路径。
+站台为基本节点，每个节点遍历其附近的区间与换乘（都可以到达一个新的站台）。路径成本为总时间（从区间或换乘模型中读取时间）。
+
+最后按顺序输出：
+每一个列表项包括：文本，线路编号，线路颜色
+如果是区间，则到达一个新车站，增加一个列表项：（车站名，线路编号，线路颜色）
+如果是换乘，则计算换乘文本。增加一个列表项：（换乘文本，线路编号=“-100”，线路颜色=“#999”）
+
+换乘文本的计算如下：换乘“xx线路”的“xx终点站方向”。都从模型中查找。
+
+此外，提前创建一个字典储存各线路的终点站信息，在计算时动态更新，参考：
+
+
+
+不对，重写，思路应该是：遍历path_ids（忽略超级源点和超级汇点）。维护prev_platform。维护take_count，初始为0。
+对于每个站台，如果prev_platform.id不等于当前车站id，则为一次换乘，做如下操作：
+结果添加站数信息：["共take_count站","站数",line.colour]，
+从prev_platform获取线路， 结果添加：[站名，line.line_no，line.colour]
+获取next_platform并计算换乘文本，结果添加换乘信息：[<换乘文本>,"换乘",#999]
+从当前platform获取线路，结果添加：[站名，line.line_no，line.colour]
+take_count重置为0。
+
+否则，take_count+=1
+
+此外对于path_ids的第一个站台，结果添加：[站名，line.line_no，line.colour]
+path_ids遍历结束后，此时prev_platform为最后一个站台，做如下收尾：
+结果添加站数信息：["共take_count站","站数",line.colour]，
+从prev_platform获取线路， 结果添加：[站名，line.line_no，line.colour]
+
+
+
+
+
+
+
+
+
