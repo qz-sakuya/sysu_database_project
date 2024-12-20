@@ -45,7 +45,7 @@ class Exit(models.Model):
     exit_sub_address = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
-        unique_together = (('station', 'exit_no'), ('station', 'exit_name'))
+        unique_together = (('station', 'exit_no'), )
 
     def __str__(self):
         return f"Exit {self.exit_no} at Station {self.station.station_name}"
@@ -64,9 +64,6 @@ class Section(models.Model):
 
     def __str__(self):
         return f"Section {self.section_no} on Line {self.line.line_no}"
-
-
-from django.db import models
 
 
 class Transfer(models.Model):
