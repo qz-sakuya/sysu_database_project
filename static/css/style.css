@@ -31,35 +31,12 @@ header {
     gap: 1rem; /* 调整为需要的值 */
 }
 
-.left-panel, .middle-panel, .right-panel {
+/* 面板 */
+.panel {
     padding: 1rem;
     box-shadow: 0 0 20px rgba(60, 60, 60, 0.3);
     background-color: rgb(255, 255, 255);
     border-radius: 3px;
-}
-
-.left-panel {
-    flex-basis: 17.5%;
-}
-
-.middle-panel {
-    flex-basis: 45%;
-}
-
-.right-panel {
-    flex-basis: 17.5%;
-}
-
-/* 线路图按钮 */
-.line-map-button {
-    height: 30px;
-    width: 100%;
-}
-
-/* 计算路线按钮 */
-.path-calculate-button {
-    height: 30px;
-    width: 100%;
 }
 
 /* 按钮 */
@@ -99,22 +76,6 @@ button:hover {
     color: white;
 }
 
-
-/* 车站列表项-更多功能按钮 */
-.station-options-popup {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-    background-color: white;
-    border: 1px solid #ccc;
-    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-.station-options-popup li {
-    padding: 8px 16px;
-    cursor: pointer;
-}
-
 .station-options-popup li:hover {
     background-color: #f0f0f0;
 }
@@ -129,6 +90,7 @@ input[type="text"] {
     margin-bottom: 1rem;
     height: 20px;
 }
+
 
 /* 列表 */
 ul {

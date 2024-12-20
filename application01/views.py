@@ -14,7 +14,7 @@ from application01.models import Line, Platform, Station, Exit, Section, Transfe
 
 from django.core.exceptions import ObjectDoesNotExist
 import base64
-from django.db.models import FloatField, Max
+from django.db.models import FloatField, Max, Q
 from django.db.models.functions import Cast
 
 from collections import defaultdict
@@ -258,7 +258,7 @@ def get_stations_for_search(request):
 
 
 # 计算路径
-def calculate_path(request, start_station_name, end_station_name):
+def calculate_path(request, start_station_name, end_station_name, search_type):
     if request.method == 'GET':
         try:
             # 获取起点站和终点站
@@ -276,19 +276,22 @@ def calculate_path(request, start_station_name, end_station_name):
             end_platforms = Platform.objects.filter(station=end_station)
 
             # 构建图并加入超级源点和超级汇点
-            graph, super_source_id, super_sink_id = build_graph_with_super_nodes(start_platforms, end_platforms)
+            if search_type == '最短时间':
+                graph, super_source_id, super_sink_id = build_graph_min_time(start_platforms, end_platforms)
+            else:
+                graph, super_source_id, super_sink_id = build_graph_min_transfer(start_platforms, end_platforms)
 
             # 使用Dijkstra算法计算最短路径
-            total_time, path_ids = dijkstra(graph, super_source_id, super_sink_id)
+            path_ids = dijkstra(graph, super_source_id, super_sink_id)
 
             # 解析路径以统计车站数、换乘数等信息
             result = parse_path(path_ids, super_source_id, super_sink_id)
 
             # 由于数据来源不准的临时修正
-            total_time = int(total_time * 1.2)
+            result['total_time'] = int(result['total_time'] * 1.2)
 
             return JsonResponse({
-                'total_time': total_time,
+                'total_time': result['total_time'],
                 'station_count': result['station_count'],
                 'transfer_count': result['transfer_count'],
                 'path': result['path']
@@ -301,7 +304,7 @@ def calculate_path(request, start_station_name, end_station_name):
         return JsonResponse({'error': 'Invalid request method'}, status=400)
 
 
-def build_graph_with_super_nodes(start_platforms, end_platforms):
+def build_graph_min_time(start_platforms, end_platforms):
     graph = defaultdict(list)
 
     # 为超级源点和超级汇点分配id
@@ -331,6 +334,36 @@ def build_graph_with_super_nodes(start_platforms, end_platforms):
     return graph, super_source_id, super_sink_id
 
 
+def build_graph_min_transfer(start_platforms, end_platforms):
+    graph = defaultdict(list)
+
+    # 为超级源点和超级汇点分配id
+    max_id = Platform.objects.aggregate(Max('id'))['id__max'] or 0
+    super_source_id = max_id + 1
+    super_sink_id = max_id + 2
+
+    # 添加超级源点到所有起点站台的边（成本为0）
+    for platform in start_platforms:
+        graph[super_source_id].append((platform.id, 0))
+        graph[platform.id].append((super_source_id, 0))
+
+    # 添加超级汇点从所有终点站台的边（成本为0）
+    for platform in end_platforms:
+        graph[platform.id].append((super_sink_id, 0))
+        graph[super_sink_id].append((platform.id, 0))
+
+    # 构建实际的图结构
+    for section in Section.objects.select_related('platform1', 'platform2').all():
+        graph[section.platform1.id].append((section.platform2.id, 0.001))
+        graph[section.platform2.id].append((section.platform1.id, 0.001))
+
+    for transfer in Transfer.objects.select_related('platform1', 'platform2').all():
+        graph[transfer.platform1.id].append((transfer.platform2.id, 1))
+        graph[transfer.platform2.id].append((transfer.platform1.id, 1))
+
+    return graph, super_source_id, super_sink_id
+
+
 def dijkstra(graph, start, end):
     queue = [(0, start, [])]
     visited = set()
@@ -343,20 +376,21 @@ def dijkstra(graph, start, end):
             path = path + [current]
 
             if current == end:
-                return cost, path
+                return path
 
             for neighbor, time_cost in graph[current]:
                 if neighbor not in visited:
                     heapq.heappush(queue, (cost + time_cost, neighbor, path))
 
-    return float("inf"), []
+    return []
 
 
 def parse_path(path_ids, super_source_id, super_sink_id):
     result = {
         'station_count': 0,
         'transfer_count': 0,
-        'path': []
+        'path': [],
+        'total_time': 0
     }
     prev_platform = None
     prev_line = None
@@ -389,6 +423,14 @@ def parse_path(path_ids, super_source_id, super_sink_id):
                     'max_station_name': ''
                 }
 
+        # 修正3北、14支、广佛线线路编号
+        if line.line_no == '3.5':
+            line.line_no = '3'
+        if line.line_no == '14.5':
+            line.line_no = '14'
+        if line.line_no == '100':
+            line.line_no = 'GF'
+
         # 处理起点站
         if prev_platform is None:
             result['path'].append(
@@ -396,6 +438,12 @@ def parse_path(path_ids, super_source_id, super_sink_id):
 
         if prev_platform and prev_platform.line_id != platform.line_id:  # 换乘
             result['transfer_count'] += 1
+            # 增加换乘时间
+            transfer = Transfer.objects.filter(
+                Q(platform1_id=prev_platform.id, platform2_id=platform.id) |
+                Q(platform1_id=platform.id, platform2_id=prev_platform.id)).first()
+            if transfer:
+                result['total_time'] += transfer.transfer_time
 
             # 上一条线路的站数和末站
             result['path'].append({'text': f"（共{take_count}站）", 'line_no': "站数", 'colour': prev_line.colour})
@@ -409,7 +457,19 @@ def parse_path(path_ids, super_source_id, super_sink_id):
                 direction_name = line_endpoints[platform.line_id]['max_station_name'] or '上行'
             else:
                 direction_name = line_endpoints[platform.line_id]['min_station_name'] or '下行'
-            transfer_text = f"换乘{line.line_name}的{direction_name}方向"
+            transfer_text = f"换乘 {line.line_name} {direction_name} 方向"
+
+            # 3号线直通车特判
+            if platform.station.station_name == "体育西路":
+                prev_prev_platform_id = path_ids[i - 2] if i >= 2 else None
+                prev_prev_platform = Platform.objects.get(id=prev_prev_platform_id) if prev_prev_platform_id else None
+                if prev_prev_platform and next_platform:
+                    prev_prev_station_name = prev_prev_platform.station.station_name
+                    next_station_name = next_platform.station.station_name
+                    print(prev_prev_station_name, next_station_name)
+                    if {'林和西', '珠江新城'} == {prev_prev_station_name, next_station_name}:
+                        transfer_text += "，或搭乘南北直通车"
+
             result['path'].append({'text': transfer_text, 'line_no': "换乘", 'colour': "#999"})
 
             # 当前线路的首站
@@ -418,6 +478,13 @@ def parse_path(path_ids, super_source_id, super_sink_id):
             take_count = 0
         else:
             result['station_count'] += 1
+            # 增加区间时间
+            if prev_platform:
+                section = Section.objects.filter(
+                    Q(platform1_id=prev_platform.id, platform2_id=platform.id) |
+                    Q(platform1_id=platform.id, platform2_id=prev_platform.id)).first()
+                if section:
+                    result['total_time'] += section.travel_time
 
         prev_platform = platform
         prev_line = line
@@ -429,3 +496,142 @@ def parse_path(path_ids, super_source_id, super_sink_id):
         {'text': prev_platform.station.station_name, 'line_no': prev_line.line_no, 'colour': prev_line.colour})
 
     return result
+
+
+# 显示车站信息页面
+def station_info_view(request, station_name):
+    if request.method == 'GET':
+        try:
+            # 获取指定名称的车站对象
+            station = Station.objects.get(station_name=station_name)
+        except Station.DoesNotExist:
+            return HttpResponse("车站不存在", status=404)
+
+        line_endpoints = {}
+
+        # 获取车站具有的站台和线路
+        have_platforms = Platform.objects.filter(station=station)
+        have_lines = Line.objects.filter(platform__in=have_platforms).distinct()
+
+        # 更新线路到终点站的字典
+        for line in have_lines:
+            if line.id not in line_endpoints:
+                platforms = Platform.objects.filter(line=line).order_by('platform_no')
+
+                if platforms.exists():
+                    min_platform = platforms.first()
+                    max_platform = platforms.last()
+
+                    # 获取车站名称并处理特殊情况
+                    min_station_name = min_platform.station.station_name
+                    max_station_name = max_platform.station.station_name
+
+                    line_endpoints[line.id] = {
+                        'min_station_name': min_station_name,
+                        'max_station_name': max_station_name
+                    }
+                else:
+                    line_endpoints[line.id] = {
+                        'min_station_name': '',
+                        'max_station_name': ''
+                    }
+
+        # 获取车站的首末班车数据
+        first_trains_data = []
+        last_trains_data = []
+        for plat in have_platforms:
+
+            first_train = FirstTrain.objects.filter(platform=plat)
+            for train in first_train:
+                if train.direction == 'up':
+                    direction_name = line_endpoints[plat.line_id]['max_station_name'] or '上行'
+                else:
+                    direction_name = line_endpoints[plat.line_id]['min_station_name'] or '下行'
+                departure_time_str = train.departure_time.strftime('%H:%M') if train.departure_time else None
+                first_trains_data.append({
+                    'direction': direction_name,
+                    'departure_time': departure_time_str
+                })
+
+            last_train = LastTrain.objects.filter(platform=plat)  # 假设LastTrain模型存在
+            for train in last_train:
+                if train.direction == 'up':
+                    direction_name = line_endpoints[plat.line_id]['max_station_name'] or '上行'
+                else:
+                    direction_name = line_endpoints[plat.line_id]['min_station_name'] or '下行'
+                departure_time_str = train.departure_time.strftime('%H:%M') if train.departure_time else None
+                last_trains_data.append({
+                    'direction': direction_name,
+                    'departure_time': departure_time_str
+                })
+
+        # 对线路数据进行处理
+        lines_data = [
+            {
+                'id': line.id,
+                'colour': line.colour,
+                'line_no': line.line_no,
+            }
+            for line in have_lines
+        ]
+
+        # 修正3北、14支、广佛线线路编号
+        for line in lines_data:
+            if line['line_no'] == '3.5':
+                line['line_no'] = '3'
+            if line['line_no'] == '14.5':
+                line['line_no'] = '14'
+            if line['line_no'] == '100':
+                line['line_no'] = 'GF'
+
+        seen = set()  # 去重
+        unique_lines_data = []
+        for line in lines_data:
+            key = line['line_no']
+            if key not in seen:
+                seen.add(key)
+                unique_lines_data.append(line)
+        lines_data = unique_lines_data
+
+        # 获取车站的设施信息
+        facilities = StationFacility.objects.filter(station=station).select_related('icon_image').order_by(
+            '-facility_type')
+
+        facility_data = [
+            {
+                'facility_type': facility.facility_type,
+                'icon_image_data': base64.b64encode(facility.icon_image.image_data).decode(
+                    'utf-8') if facility.icon_image else None
+            }
+            for facility in facilities
+        ]
+
+        # 获取车站的出口信息
+        exits = Exit.objects.filter(station=station)
+
+        exit_data = [
+            {
+                'exit_no': exit.exit_no,
+                'exit_name': exit.exit_name,
+                'exit_address': exit.exit_address,
+                'exit_sub_address': exit.exit_sub_address
+            }
+            for exit in exits
+        ]
+
+        station_data = {
+            'name': station.station_name,
+            'lines': lines_data,
+            'facilities': facility_data,
+            'first_trains': first_trains_data,
+            'last_trains': last_trains_data,
+            'exits': exit_data
+        }
+
+        context = {
+            'station': station_data
+        }
+
+        return render(request, 'application01/station_info.html', context)
+    else:
+        return HttpResponse(status=405)

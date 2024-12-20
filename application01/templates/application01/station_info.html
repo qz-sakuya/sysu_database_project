@@ -1,0 +1,45 @@
+<!-- station_info.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>车站信息</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        /* 面板 */
+        .panel {
+            padding: 1rem;
+            box-shadow: 0 0 20px rgba(60, 60, 60, 0.3);
+            background-color: rgb(255, 255, 255);
+            border-radius: 3px;
+        }
+
+        .name-panel {
+            flex-basis: 20%;
+        }
+
+
+
+    </style>
+</head>
+<body>
+    <header>
+        <h1>地铁车站查询</h1>
+    </header>
+    <main>
+        <div class="container">
+            <div class="panel name-panel">
+                <h1 id="station-name"></h1>
+            </div>
+        </div>
+    </main>
+
+    <script>
+    // 假设通过上下文传递了车站名
+    document.getElementById('station-name').textContent = "{{ station_name }}";
+    </script>
+
+</body>
+</html>

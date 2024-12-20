@@ -19,6 +19,23 @@
             flex-basis: 17.5%;
         }
 
+        /* 线路图按钮 */
+        .line-map-button {
+            height: 30px;
+            width: 100%;
+        }
+
+        /* 计算路线按钮 */
+        .path-calculate-button {
+            height: 30px;
+            width: 100%;
+        }
+
+        /* 路径输入框-标签 */
+        .path-input-label {
+            font-size: 0.9em;
+        }
+
         /* 线路图标 */
         .color-circle {
             display: inline-block;
@@ -86,14 +103,14 @@
         /* 车站列表项-竖条样式 */
         .line-bar-up {
             position: absolute;
-            bottom: 70%;
+            bottom: 50%;
             left: 27%;
             width: 8px;
             z-index: 1;
         }
         .line-bar-down {
             position: absolute;
-            top: 70%;
+            top: 50%;
             left: 27%;
             width: 8px;
             z-index: 1;
@@ -173,6 +190,21 @@
             height: 100%; /* 确保 ul 有明确的高度 */
         }
 
+        /* 路径列表-路径信息列表 */
+        .path-info {
+            display: flex; /* 水平排布 */
+            justify-content: flex-start; /* 子元素靠左对齐 */
+            align-items: center; /* 垂直居中对齐 */
+        }
+
+        /* 路径列表-路径信息项 */
+        .path-info-item {
+            padding: 5px;
+            margin-right: 10px;
+            text-align: left; /* 文本左对齐 */
+            font-size: 0.8em;
+        }
+
     </style>
 </head>
 <body>
@@ -181,7 +213,7 @@
     </header>
     <main>
         <div class="container">
-            <div class="left-panel">
+            <div class="panel left-panel" style="width: 20%;">
                 <button type="button" class="line-map-button">显示线路图</button>
                 <ul id="line-list">
                     {% for line in lines %}
@@ -201,24 +233,24 @@
                     {% endfor %}
                 </ul>
             </div>
-            <div class="middle-panel">
+            <div class="panel middle-panel">
                 <input type="text" id="search-station" placeholder="搜索车站">
                 <ul id="station-list">
                     <!-- 默认情况下为空 -->
                 </ul>
             </div>
-            <div class="right-panel">
+            <div class="panel right-panel">
                 <form id="path-form">
-                    <label for="start-station">起点站</label>
+                    <label for="start-station" class="path-input-label">起点站</label>
                     <input type="text" id="start-station" placeholder="选择或输入起点站">
                     <br>
-                    <label for="end-station">终点站</label>
+                    <label for="end-station" class="path-input-label">终点站</label>
                     <input type="text" id="end-station" placeholder="选择或输入终点站">
                     <br>
                     <button type="button" class="path-calculate-button">计算路线</button>
                     <div class="toggle-buttons">
-                        <button type="button" class="toggle-btn active" data-mode="fastest">最短时间</button>
-                        <button type="button" class="toggle-btn" data-mode="fewest-changes">最少换乘</button>
+                        <button type="button" class="toggle-btn active" data-mode="最短时间">最短时间</button>
+                        <button type="button" class="toggle-btn" data-mode="最少换乘">最少换乘</button>
                     </div>
                     <div id="path-info">
                         <!-- 默认情况下为空 -->
@@ -232,7 +264,7 @@
     </main>
 
     <script>
-        // 显示输入框
+        // 显示线路图
         document.querySelector('.line-map-button').addEventListener('click', function() {
             window.open('/show_line_map/', '_blank');
         });
@@ -243,14 +275,23 @@
 
             toggleButtons.forEach(button => {
                 button.addEventListener('click', function() {
-                    // Remove active class from all buttons
+                    // 移除所有按钮的 active 类
                     toggleButtons.forEach(btn => btn.classList.remove('active'));
 
-                    // Add active class to the clicked button
+                    // 给点击的按钮添加 active 类
                     this.classList.add('active');
 
-                    // You can add additional logic here to handle the mode change
-                    console.log('Selected mode:', this.getAttribute('data-mode'));
+                    // 如果输入了起终点站，发起对应调用
+                    const startStationInput = document.getElementById('start-station');
+                    const endStationInput = document.getElementById('end-station');
+
+                    const startStationName = startStationInput.value.trim();
+                    const endStationName = endStationInput.value.trim();
+
+                    if (startStationName && endStationName) {
+                        fetchAndShowPath(startStationName,endStationName,this.getAttribute('data-mode'))
+                    }
+
                 });
             });
         });
@@ -491,17 +532,23 @@
 
                         optionsPopup.appendChild(optionItem);
 
-                        if (optionText !== '车站信息') {
-                            optionItem.addEventListener('click', () => {
-                                if (optionText === '填入起点') {
-                                    startStationInput.value = station.name;
-                                } else if (optionText === '填入终点') {
-                                    endStationInput.value = station.name;
-                                }
-                                // 移除临时子列表
-                                optionsPopup.remove();
-                            });
-                        }
+                        // 检测子列表项被按下
+                        optionItem.addEventListener('click', () => {
+                            if (optionText === '填入起点') {
+                                startStationInput.value = station.name;
+                            } else if (optionText === '填入终点') {
+                                endStationInput.value = station.name;
+                            }
+                             else if (optionText === '车站信息') {
+                                // 构造车站信息的 URL
+                                const url = `/station-info/${encodeURIComponent(station.name)}/`;
+                                window.open(url, "_blank");
+                            }
+
+                            // 移除临时子列表
+                            optionsPopup.remove();
+                        });
+
                     });
 
                     // 点击子列表外部关闭临时子列表
@@ -552,7 +599,7 @@
             });
         }
 
-         // 调用车站列表
+        // 调用车站列表
         function fetchAndShowStations(lineNoStr) {
             fetch(`/get_stations_for_line/${lineNoStr}/`)
                 .then(response => response.json())
@@ -628,12 +675,28 @@
 
         });
 
-        // 在DOM加载完后检测文本过长
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.end-stations-list').forEach(function(listEl) {
-                adjustFontSizesInList(listEl, 13);
+        // 调用路径查询
+        function fetchAndShowPath(startStationName,endStationName,search_type) {
+            // 构建URL
+            const url = `/calculate_path/${encodeURIComponent(startStationName)}/${encodeURIComponent(endStationName)}/${search_type}/`;
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
+            .then(data => showPaths(data))
+            .catch(error => {
+                console.error('Error:', error);
+                alert(`发生错误: ${error.error || '未知错误'}`);
             });
-        });
+        }
 
         // 计算路径
         document.querySelector('.path-calculate-button').addEventListener('click', function() {
@@ -642,35 +705,25 @@
 
             const startStationName = startStationInput.value.trim();
             const endStationName = endStationInput.value.trim();
-
-            if (startStationName && endStationName) {
-                // 构建URL
-                const url = `/calculate_path/${encodeURIComponent(startStationName)}/${encodeURIComponent(endStationName)}/`;
-                fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(err => Promise.reject(err));
-                    }
-                    return response.json();
-                })
-                .then(data => showPaths(data))
-                .catch(error => {
-                    console.error('Error:', error);
-                    //alert(`发生错误: ${error.error || '未知错误'}`);
-                });
-            } else {
+            if (!startStationName || !endStationName) {
                 alert('起点站或终点站为空');
             }
+
+            // 获取搜索模式按钮的激活状态
+            const activeButton = document.querySelector('.toggle-btn.active');
+            if (!activeButton) {
+                alert('请选择路径模式');
+                return;
+            }
+            const search_type = activeButton.getAttribute('data-mode');
+
+            fetchAndShowPath(startStationName,endStationName,search_type)
         });
 
         // 绘制路径信息
         function showPaths(data) {
             const pathInfoDiv = document.getElementById('path-info');
+            pathInfoDiv.className = 'path-info';
             const pathList = document.getElementById('path-list');
 
             // 清空现有内容
@@ -678,11 +731,33 @@
             pathList.innerHTML = '';
 
             // 显示总时间、车站数、换乘数
-            pathInfoDiv.innerHTML = `
-                总时间: ${data.total_time} 分钟 <br>
-                经过车站数: ${data.station_count} <br>
-                换乘次数: ${data.transfer_count}
-            `;
+            const totalTimeDiv = document.createElement('div');
+            totalTimeDiv.className = 'path-info-item';
+            createTwoLineContent(totalTimeDiv, '总时间', `约 ${data.total_time} 分钟`);
+            pathInfoDiv.appendChild(totalTimeDiv);
+
+            const stationCountDiv = document.createElement('div');
+            stationCountDiv.className = 'path-info-item';
+            createTwoLineContent(stationCountDiv, '车站数', data.station_count);
+            pathInfoDiv.appendChild(stationCountDiv);
+
+            const transferCountDiv = document.createElement('div');
+            transferCountDiv.className = 'path-info-item';
+            createTwoLineContent(transferCountDiv, '换乘数', data.transfer_count);
+            pathInfoDiv.appendChild(transferCountDiv);
+
+            // 辅助函数来创建两行文本的内容
+            function createTwoLineContent(parentDiv, title, content) {
+                const titleElement = document.createElement('div');
+                titleElement.className = 'path-info-title';
+                titleElement.textContent = title;
+                parentDiv.appendChild(titleElement);
+
+                const contentElement = document.createElement('div');
+                contentElement.className = 'path-info-content';
+                contentElement.textContent = content;
+                parentDiv.appendChild(contentElement);
+            }
 
             // 显示路径详情
             data.path.forEach(item => {
@@ -696,6 +771,11 @@
                 pathItemDiv.style.width = '100%';
                 pathItemDiv.style.margin = '0';
                 pathItemDiv.style.padding = '0';
+
+                // 增加行高
+                if (item.line_no === "站数" || item.line_no === "换乘"){
+                    pathItemDiv.style.lineHeight = '2em';
+                }
 
                 // 创建竖条
                 const lineBarUp = document.createElement('div');
@@ -726,16 +806,26 @@
                     lineCircle.appendChild(lineNoSpan);
                     lineIcon.appendChild(lineCircle);
                 }
+                else{
+                    // 创建一个透明 div 用于定位
+                    const lineCircle = document.createElement('span');
+                    lineCircle.className = 'color-circle';
+                    lineCircle.style.borderColor = 'transparent';
+                    lineCircle.style.backgroundColor = 'transparent';
+                    lineIcon.appendChild(lineCircle);
+                }
 
                 // 根据条件添加竖条
-                lineIcon.appendChild(lineBarUp);
-                lineIcon.appendChild(lineBarDown);
+                if (item.line_no === "站数"){
+                    lineIcon.appendChild(lineBarUp);
+                    lineIcon.appendChild(lineBarDown);
+                }
+
 
                 iconsDiv.appendChild(lineIcon);
 
                 // 创建文本的 div
                 const pathTextDiv = document.createElement('div');
-                pathTextDiv.style.width = '50%';
                 pathTextDiv.textContent = item.text;
 
                 // 将各项添加到 pathItemDiv 中
@@ -748,10 +838,31 @@
                 // 将 a 标签添加到 li 中
                 li.appendChild(a);
                 pathList.appendChild(li);
+
+                requestAnimationFrame(() => {
+                    // 计算行高并在 DOM 加载完成后更新竖条高度
+                    const lineHeight = pathItemDiv.offsetHeight*1.1;
+                    lineBarUp.style.height = `${lineHeight}px`;
+                    lineBarDown.style.height = `${lineHeight}px`;
+
+                    // 调整文本最大长度
+                    if (item.line_no !== "站数" && item.line_no !== "换乘") {
+                        adjustFontSize(pathTextDiv, 12,{minFontSize: 12});
+                    }
+                    else{
+                        pathTextDiv.style.fontSize = '0.85em';// 站数与换乘的文本缩小
+                        adjustFontSize(pathTextDiv, 14,{minFontSize: 11});
+                    }
+                });
             });
         }
 
-
+        // 在DOM加载完后检测文本过长
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.end-stations-list').forEach(function(listEl) {
+                adjustFontSizesInList(listEl, 13,{minFontSize: 9});
+            });
+        });
     </script>
 </body>
 </html>
