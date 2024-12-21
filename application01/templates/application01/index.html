@@ -175,9 +175,22 @@
             margin-left: auto; /* 将按钮推到右侧 */
         }
 
-        /* 按钮悬停 */
         .station-options-button:hover {
             background-color: #bbb;
+        }
+
+        /* 车站列表项-更多功能按钮-子功能列表 */
+        .station-options-popup {
+            background-color: white; /* 或者其他颜色 */
+            border: 1px solid #ccc;
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .station-options-popup li {
+            padding: 4px 8px;
+            cursor: pointer;
         }
 
         /* 路径列表 */
@@ -266,7 +279,7 @@
     <script>
         // 显示线路图
         document.querySelector('.line-map-button').addEventListener('click', function() {
-            window.open('/show_line_map/', '_blank');
+            window.open('/line_map/', '_blank');
         });
 
         // 路径模式按钮切换
@@ -541,7 +554,7 @@
                             }
                              else if (optionText === '车站信息') {
                                 // 构造车站信息的 URL
-                                const url = `/station-info/${encodeURIComponent(station.name)}/`;
+                                const url = `/station/${encodeURIComponent(station.name)}/`;
                                 window.open(url, "_blank");
                             }
 

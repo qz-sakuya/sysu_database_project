@@ -24,7 +24,7 @@ header {
 /* 主容器 */
 .container {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     padding: 3rem 5rem;
     background-color: var(--theme-color);
     flex-grow: 1;

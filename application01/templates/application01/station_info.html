@@ -4,11 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>车站信息</title>
+    <title>地铁车站查询-{{ station_name }}</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <style>
-        /* 面板 */
+        .container {
+            display: flex;
+            justify-content: center;
+            padding: 3rem 5rem;
+            background-color: var(--theme-color);
+            flex-grow: 1;
+            gap: 1rem; /* 调整为需要的值 */
+        }
+
         .panel {
             padding: 1rem;
             box-shadow: 0 0 20px rgba(60, 60, 60, 0.3);
@@ -17,10 +25,84 @@
         }
 
         .name-panel {
-            flex-basis: 20%;
+            padding: 0.8rem;
         }
 
+        .train-panel {
+            flex-basis: 90%;
+        }
 
+        .exit-panel {
+            flex-basis: 90%;
+        }
+
+        /* 线路图标 */
+        .color-circle {
+            display: inline-block;
+            width: 25px;  /* 圆环直径 */
+            height: 25px; /* 圆环直径 */
+            border-radius: 50%; /* 使div成为圆形 */
+            margin-right: 8px;  /* 与线路名称之间的间距 */
+            margin-top: -4px;/* 对齐文字 */
+            vertical-align: middle; /* 垂直居中对齐 */
+            border: 2px solid; /* 添加边框以形成圆环效果 */
+            box-sizing: border-box; /* 确保边框包含在宽度和高度内 */
+            position: relative; /* 使内部的数字可以绝对定位 */
+            background-color: white; /* 背景颜色 */
+            z-index: 2;
+        }
+
+        .color-circle span {
+            position: absolute;
+            top: 52%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 14px; /* 调整字体大小 */
+            color: black; /* 文字颜色 */
+            line-height: 2; /* 确保文字垂直居中 */
+            z-index: 2;
+        }
+
+        /* 标题-站名字段 */
+        .station-name {
+            font-size: 22px;
+            padding-left: 6px;
+            padding-right: 12px;
+            text-align: right; /* 文本右对齐 */
+        }
+
+        /* 标题-线路与设施图标 */
+        .station-icons {
+            display: flex;
+            align-items: center;
+            margin-top: 7px; /* 对齐文本 */
+        }
+
+        /* 首末班车列表项 */
+        .train-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        /* 首末班车列表项-方向字段 */
+        .train-direction {
+            flex-basis: 40%;
+        }
+
+        /* 首末班车列表项-首班车 */
+        .train-first {
+            text-align: center; /* 文本居中 */
+            flex-basis: 30%;
+        }
+
+        /* 首末班车列表项-末班车 */
+        .train-last {
+            text-align: center; /* 文本居中 */
+            flex-basis: 30%;
+        }
 
     </style>
 </head>
@@ -30,15 +112,136 @@
     </header>
     <main>
         <div class="container">
-            <div class="panel name-panel">
-                <h1 id="station-name"></h1>
+            <div class="panel name-panel" data-station-name="{{ station_name }}">
+            </div>
+        </div>
+        <div class="container">
+            <div class="panel train-panel">
+{#                <div class="train-title">#}
+{#                    <span class="train-title-first">首班车</span>#}
+{#                    <span class="train-title-last">末班车</span>#}
+{#                </div>#}
+                <ul id="train-list">
+                    <!-- 默认情况下为空 -->
+                </ul>
+            </div>
+        </div>
+        <div class="container">
+            <div class="panel exit-panel">
             </div>
         </div>
     </main>
 
     <script>
-    // 假设通过上下文传递了车站名
-    document.getElementById('station-name').textContent = "{{ station_name }}";
+        // 绘制所有内容
+        document.addEventListener('DOMContentLoaded', function () {
+            // 从DOM中获取station_name
+            const stationNameElement = document.querySelector('.name-panel');
+            const stationName = stationNameElement.getAttribute('data-station-name');
+            fetch(`/get_station_info/${stationName}/`)
+                .then(response => response.json())
+                .then(data => {
+                    // 绘制首末班车部分
+                    const trainList = document.getElementById('train-list');
+
+                    // 检查data.trains是否存在且不是空列表
+                    if (Array.isArray(data.trains) && data.trains.length > 0) {
+                        data.trains.forEach(train => {
+                            const listItem = document.createElement('li');
+                            listItem.className = 'train-item';
+
+                            const directionDiv = document.createElement('div');
+                            directionDiv.className = 'train-direction';
+                            directionDiv.textContent = train.direction;
+
+                            const firstTrainDiv = document.createElement('div');
+                            firstTrainDiv.className = 'train-first';
+                            firstTrainDiv.textContent = train.first_train_time;
+
+                            const lastTrainDiv = document.createElement('div');
+                            lastTrainDiv.className = 'train-last';
+                            lastTrainDiv.textContent = train.last_train_time;
+
+                            listItem.appendChild(directionDiv);
+                            listItem.appendChild(firstTrainDiv);
+                            listItem.appendChild(lastTrainDiv);
+
+                            trainList.appendChild(listItem);
+                        });
+                    } else {
+                        // 如果没有数据，可以显示一个提示信息
+                        const noDataItem = document.createElement('li');
+                        noDataItem.textContent = '暂无首末班车信息';
+                        trainList.appendChild(noDataItem);
+                    }
+
+                    // 绘制站名部分
+                    const namePanel = document.querySelector('.name-panel');
+
+                    // 包含站名所有信息的 div
+                    const nameItemDiv = document.createElement('div');
+                    nameItemDiv.style.display = 'flex'; // 使用 Flexbox 布局
+                    nameItemDiv.style.alignItems = 'center'; // 垂直居中对齐
+                    nameItemDiv.style.width = '100%'; // 占据整个父元素的宽度
+                    nameItemDiv.margin = 0; /* 去除默认的外边距 */
+                    nameItemDiv.padding = 0; /* 去除默认的内边距 */
+
+                    // 创建车站名称的 div
+                    const stationNameDiv = document.createElement('div');
+                    stationNameDiv.className = 'station-name';
+                    stationNameDiv.textContent = data.name;
+
+                    // 创建线路编号和设施图标的 div
+                    const iconsDiv = document.createElement('div');
+                    iconsDiv.className = 'station-icons';
+                    iconsDiv.style.display = 'flex'; // 使用 Flexbox 布局
+                    iconsDiv.style.alignItems = 'center'; // 垂直居中对齐
+                    iconsDiv.style.gap = '1px'; // 图标之间的间距
+
+                    data.lines.forEach((line, lineIndex) => {
+                        // 为每个线路创建容器
+                        const lineIcon = document.createElement('span');
+                        lineIcon.style.position = 'relative';
+
+                        // 线路标识
+                        const lineCircle = document.createElement('span');
+                        lineCircle.className = 'color-circle';
+                        lineCircle.style.borderColor = line.colour;
+                        const lineNoSpan = document.createElement('span');
+                        lineNoSpan.textContent = line.line_no;
+                        lineCircle.appendChild(lineNoSpan);
+                        lineIcon.appendChild(lineCircle);
+
+                        iconsDiv.appendChild(lineIcon);
+                    });
+
+                    data.facilities.forEach(facility => {
+                        if (facility.icon_image_data) {
+                            const facilityIcon = document.createElement('img');
+                            facilityIcon.src = `data:image/png;base64,${facility.icon_image_data}`; // 设置Base64编码的图片数据
+                            facilityIcon.alt = `${facility.facility_type} icon`;
+                            facilityIcon.style.marginTop = '5px'; // 对齐水平线
+                            facilityIcon.style.marginRight = '-4px'; // 缩短设施图标的间距
+                            facilityIcon.style.transform = 'scale(0.7)';
+                            facilityIcon.style.transformOrigin = 'top left'; // 缩放的起始点设为左上角
+                            iconsDiv.appendChild(facilityIcon);
+                        }
+                    });
+
+                    // 将各项添加到name-panel中
+                    nameItemDiv.appendChild(stationNameDiv);
+                    nameItemDiv.appendChild(iconsDiv);
+
+                    namePanel.appendChild(nameItemDiv);
+
+
+                })
+                .catch(error => console.error('Error fetching stations:', error));
+
+
+
+        });
+
     </script>
 
 </body>
