@@ -127,6 +127,7 @@ def get_stations(stations, current_line=None):
                     }
 
         # 对线路数据进行处理
+        # 首先转为字典
         lines_data = [
             {
                 'id': line.id,
@@ -551,6 +552,7 @@ def get_station_info(request, station_name):
                         }
 
             # 对线路数据进行处理
+            # 首先转为字典
             lines_data = [
                 {
                     'id': line.id,
@@ -582,9 +584,6 @@ def get_station_info(request, station_name):
                     unique_lines_data.append(line)
             lines_data = unique_lines_data
 
-            # 将线路数据转换为以line_no为键的字典，便于后续查询
-            lines_dict = {line['line_no']: line for line in lines_data}
-
             # 获取车站的设施信息
             facilities = StationFacility.objects.filter(station=station).select_related('icon_image').order_by(
                 '-facility_type')
@@ -601,6 +600,16 @@ def get_station_info(request, station_name):
             # 获取车站的首末班车数据（按方向排列）
             trains_data = []
             for plat in have_platforms:
+                # 获取线路信息
+                line = Line.objects.filter(id=plat.line_id).values('id', 'colour', 'line_no', 'line_name').first()
+
+                if line['line_no'] == '3.5':
+                    line['line_no'] = '3'
+                if line['line_no'] == '14.5':
+                    line['line_no'] = '14'
+                if line['line_no'] == '100':
+                    line['line_no'] = 'GF'
+
                 for direction in ['up', 'down']:  # 两个方向都要添加
                     direction_name = line_endpoints[plat.line_id].get(f'max_station_name') if direction == 'up' else \
                         line_endpoints[plat.line_id].get(f'min_station_name')
@@ -620,8 +629,9 @@ def get_station_info(request, station_name):
 
                     # 将信息添加到列表中
                     trains_data.append({
-                        'line_no': ,
-                        'line_name': ,
+                        'line_no': line['line_no'],
+                        'line_name': line['line_name'],
+                        'colour': line['colour'],
                         'direction': direction_name,
                         'first_train_time': first_train_time,
                         'last_train_time': last_train_time

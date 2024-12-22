@@ -11,7 +11,7 @@
         .container {
             display: flex;
             justify-content: center;
-            padding: 3rem 5rem;
+            padding: 1.5rem 5rem;
             background-color: var(--theme-color);
             flex-grow: 1;
             gap: 1rem; /* 调整为需要的值 */
@@ -42,8 +42,7 @@
             width: 25px;  /* 圆环直径 */
             height: 25px; /* 圆环直径 */
             border-radius: 50%; /* 使div成为圆形 */
-            margin-right: 8px;  /* 与线路名称之间的间距 */
-            margin-top: -4px;/* 对齐文字 */
+            margin-right: 8px;
             vertical-align: middle; /* 垂直居中对齐 */
             border: 2px solid; /* 添加边框以形成圆环效果 */
             box-sizing: border-box; /* 确保边框包含在宽度和高度内 */
@@ -78,6 +77,19 @@
             margin-top: 7px; /* 对齐文本 */
         }
 
+        /* 首末班车列表-标题 */
+        .panel-title {
+            background-color: white; /* 默认白色背景 */
+            border: 1px solid var(--theme-color); /* 主题色边框 */
+            color: var(--theme-color); /* 主题色文字 */
+            padding: 8px 16px; /* 内边距 */
+            border-radius: 4px; /* 圆角 */
+            margin: 10px 0; /* 上下外边距 */
+            text-align: center; /* 文本居中 */
+            font-weight: bold; /* 加粗字体 */
+            transition: background-color 0.3s ease, color 0.3s ease; /* 平滑过渡效果 */
+        }
+
         /* 首末班车列表项 */
         .train-item {
             display: flex;
@@ -89,6 +101,7 @@
 
         /* 首末班车列表项-方向字段 */
         .train-direction {
+            display: flex;
             flex-basis: 40%;
         }
 
@@ -104,6 +117,26 @@
             flex-basis: 30%;
         }
 
+        /* 出口列表项 */
+        .exit-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        /* 出口列表项-名称字段 */
+        .exit-name {
+            display: flex;
+            flex-basis: 20%;
+        }
+
+        /* 出口列表项-地址字段 */
+        .exit-address {
+            flex-basis: 80%;
+        }
+
     </style>
 </head>
 <body>
@@ -117,10 +150,9 @@
         </div>
         <div class="container">
             <div class="panel train-panel">
-{#                <div class="train-title">#}
-{#                    <span class="train-title-first">首班车</span>#}
-{#                    <span class="train-title-last">末班车</span>#}
-{#                </div>#}
+                <div class="panel-title" role="heading">
+                    首末班车时间
+                </div>
                 <ul id="train-list">
                     <!-- 默认情况下为空 -->
                 </ul>
@@ -128,6 +160,12 @@
         </div>
         <div class="container">
             <div class="panel exit-panel">
+                <div class="panel-title" role="heading">
+                    出口资讯
+                </div>
+                <ul id="exit-list">
+                    <!-- 默认情况下为空 -->
+                </ul>
             </div>
         </div>
     </main>
@@ -141,19 +179,139 @@
             fetch(`/get_station_info/${stationName}/`)
                 .then(response => response.json())
                 .then(data => {
+                    // 绘制出入口部分
+                    const exitList = document.getElementById('exit-list');
+
+                    // 检查data.exits是否存在且不是空列表
+                    if (Array.isArray(data.exits) && data.exits.length > 0) {
+                        data.exits.forEach(exit => {
+                            const listItem = document.createElement('li');
+                            listItem.className = 'exit-item';
+
+                            // 出口名称部分
+                            const exitNameDiv = document.createElement('div');
+                            exitNameDiv.className = 'exit-name';
+
+                            // 创建出口编号元素
+                            const exitNoSpan = document.createElement('span');
+                            exitNoSpan.textContent = exit.exit_name;
+                            exitNoSpan.style.fontSize = '1.6em';
+                            exitNoSpan.style.marginLeft = '4px';
+                            exitNoSpan.style.marginRight = '4px';
+                            exitNoSpan.style.color = 'var(--theme-color)';
+
+                            // 创建“出口”文本元素，并使其底端对齐
+                            const exitTextSpan = document.createElement('span');
+                            exitTextSpan.textContent = '出口';
+                            exitTextSpan.style.verticalAlign = 'bottom';
+                            exitTextSpan.style.position = 'relative';
+                            exitTextSpan.style.bottom = '-0.3em'; // 对齐文本
+
+                            exitNameDiv.appendChild(exitNoSpan);
+                            exitNameDiv.appendChild(exitTextSpan);
+
+                            // 地址部分
+                            const exitAddressDiv = document.createElement('div');
+                            exitAddressDiv.className = 'exit-address';
+
+                            const addressMain = document.createElement('p');
+                            addressMain.className = 'address-main';
+                            addressMain.textContent = exit.exit_address;
+                            addressMain.style.margin = '0';
+                            addressMain.style.padding = '0';
+
+                            const addressSub = document.createElement('p');
+                            addressSub.className = 'address-sub';
+                            addressSub.textContent = exit.exit_sub_address ||'\u00A0';
+                            addressSub.style.margin = '0';
+                            addressSub.style.marginTop = '2px';
+                            addressSub.style.padding = '0';
+                            addressSub.style.fontSize = '0.875em';
+                            addressSub.style.color = '#777';
+
+                            exitAddressDiv.appendChild(addressMain);
+                            exitAddressDiv.appendChild(addressSub);
+
+                            listItem.appendChild(exitNameDiv);
+                            listItem.appendChild(exitAddressDiv);
+
+                            exitList.appendChild(listItem);
+                        });
+                    } else {
+                        // 如果没有数据，可以显示一个提示信息
+                        const noDataItem = document.createElement('li');
+                        noDataItem.textContent = '暂无出口信息';
+                        exitList.appendChild(noDataItem);
+                    }
+
                     // 绘制首末班车部分
                     const trainList = document.getElementById('train-list');
 
                     // 检查data.trains是否存在且不是空列表
                     if (Array.isArray(data.trains) && data.trains.length > 0) {
+                        // 先添加表头
+                        const listItem = document.createElement('li');
+                        listItem.className = 'train-item';
+                        listItem.style.marginTop = '4px'; // 增加行高
+
+                        const directionDiv = document.createElement('div');
+                        directionDiv.className = 'train-direction';
+
+                        const firstTrainDiv = document.createElement('div');
+                        firstTrainDiv.className = 'train-first';
+                        firstTrainDiv.textContent = '首班车';
+
+                        const lastTrainDiv = document.createElement('div');
+                        lastTrainDiv.className = 'train-last';
+                        lastTrainDiv.textContent = '末班车';
+
+                        listItem.appendChild(directionDiv);
+                        listItem.appendChild(firstTrainDiv);
+                        listItem.appendChild(lastTrainDiv);
+
+                        trainList.appendChild(listItem);
+
+                        // 遍历列车数据
                         data.trains.forEach(train => {
                             const listItem = document.createElement('li');
                             listItem.className = 'train-item';
+                            listItem.style.marginTop = '4px'; // 增加行高
 
+                            // 方向字段
                             const directionDiv = document.createElement('div');
                             directionDiv.className = 'train-direction';
-                            directionDiv.textContent = train.direction;
 
+                            // icon部分
+                            const iconsDiv = document.createElement('div');
+                            iconsDiv.className = 'station-icons';
+                            iconsDiv.style.display = 'flex'; // 使用 Flexbox 布局
+                            iconsDiv.style.alignItems = 'center'; // 垂直居中对齐
+                            iconsDiv.style.gap = '4px'; // 图标之间的间距
+
+                            const lineIcon = document.createElement('span');
+                            lineIcon.style.position = 'relative';
+
+                            const lineCircle = document.createElement('span');
+                            lineCircle.className = 'color-circle';
+                            lineCircle.style.borderColor = train.colour;
+                            lineCircle.style.marginTop = '-14px'; // 对齐文本
+                            const lineNoSpan = document.createElement('span');
+                            lineNoSpan.textContent = train.line_no;
+                            lineCircle.appendChild(lineNoSpan);
+                            lineIcon.appendChild(lineCircle);
+
+                            iconsDiv.appendChild(lineIcon);
+
+                            // 方向名部分
+                            const directionNameDiv = document.createElement('div');
+                            directionNameDiv.className = 'direction-name';
+                            directionNameDiv.textContent = `开往 ${train.direction} 方向`;
+
+                            // 将各部分添加到 directionDiv
+                            directionDiv.appendChild(iconsDiv);
+                            directionDiv.appendChild(directionNameDiv);
+
+                            // 首末班车时间字段
                             const firstTrainDiv = document.createElement('div');
                             firstTrainDiv.className = 'train-first';
                             firstTrainDiv.textContent = train.first_train_time;
